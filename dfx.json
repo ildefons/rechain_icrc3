@@ -1,0 +1,13 @@
+{
+  "canisters": {
+    "deployer": {
+      "main": "src/ledger.mo",
+      "type": "motoko"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "mops sources"
+    }
+  }
+}

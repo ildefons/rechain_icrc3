@@ -1,0 +1,6 @@
+[dependencies]
+base = "0.10.4"
+map = "9.0.1"
+swb = "https://github.com/infu/swb"
+sha2 = "0.0.4"
+rechain = "0.1.0"
