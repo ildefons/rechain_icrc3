@@ -39,7 +39,10 @@ module {
 
     //ILDEBegin
     public type ActionIlde = {
-        ts: Nat;
+        ts: Nat64;
+        created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
+        memo: ?Blob; //ILDE: I have added after the discussion with V
+        caller: Principal;  //ILDE: I have added after the discussion with V 
         fee: ?Nat;
         payload : {
             #burn : {

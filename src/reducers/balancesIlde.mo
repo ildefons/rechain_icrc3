@@ -26,7 +26,7 @@ module {
         public func reducer(action : T.ActionIlde) : Chain.ReducerResponse<T.ActionError> {
 
             switch(action.payload) {
-                case (#transfer(p)) { //<----IMHERE
+                case (#transfer(p)) { // ICRC3 schema: btype = "1xfer"
                     //ILDEb
                     let fee = switch (action.fee) {
                         case null 0;
@@ -60,7 +60,7 @@ module {
                         }
                     );
                 };
-                case (#transfer_from(p)) {
+                case (#transfer_from(p)) { // ICRC3 schema: btype = "2xfer"
                     //ILDE: TBD;
                     #Ok(func(_){});    //IMHERE
                 };

@@ -9,9 +9,108 @@ import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Chain "mo:rechain";
 import Deduplication "./reducers/deduplication";
+import DeduplicationIlde "./reducers/deduplicationIlde";
 import T "./types";
 import Balances "reducers/balances";
+import BalancesIlde "reducers/balancesIlde";
 import Sha256 "mo:sha2/Sha256";
+
+module rechainIlde {
+    public type BlockIlde = { 
+        #Blob : Blob; 
+        #Text : Text; 
+        #Nat : Nat;
+        #Int : Int;
+        #Array : [BlockIlde]; 
+        #Map : [(Text, BlockIlde)]; 
+    };
+    public type MemIlde = {
+        history : SWB.StableData<BlockIlde>;
+        var phash : Blob;
+    };
+    public func MemIlde() : MemIlde {
+        {
+            history = SWB.SlidingWindowBufferNewMem<BlockIlde>();
+            var phash = Blob.fromArray([0]);
+        }
+    };
+    public type ActionReducer<A,B> = (A) -> ReducerResponse<B>;
+    public type BlockId = Nat;
+    public type ReducerResponse<E> = {
+        #Ok: (BlockId) -> ();
+        #Pass;
+        #Err : E
+    };
+    public type GetBlocksRequest = { start : Nat; length : Nat };
+    public type GetTransactionsResponse = {
+        first_index : Nat;
+        log_length : Nat;
+        transactions : [BlockIlde];
+        archived_transactions : [ArchivedRange];
+    };
+    public type ArchivedRange = {
+        callback : shared query GetBlocksRequest -> async TransactionRange;
+        start : Nat;
+        length : Nat;
+    };
+    public type TransactionRange = { transactions : [BlockIlde] };
+
+    public class ChainIlde<A,E,B>({
+        mem: MemIlde;
+        //mem: Mem<A>;
+        encodeBlock: (B) -> BlockIlde;
+        //addPhash: (A, phash: Blob) -> B;
+        addPhash: (BlockIlde, phash: Blob) -> BlockIlde;
+        //hashBlock: (Block) -> Blob;
+        hashBlock: (BlockIlde) -> Blob;
+        reducers : [ActionReducer<A,E>];
+        }) {// ---->IMHERE
+        let history = SWB.SlidingWindowBuffer<BlockIlde>(mem.history);
+
+        public func dispatch( action: A ) : {#Ok : BlockId;  #Err: E } {
+
+            // Execute reducers
+            let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
+
+            // Check if any reducer returned an error and terminate if so
+            let hasError = Array.find<ReducerResponse<E>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
+            switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
+
+            let blockId = history.end() + 1;
+            // Execute state changes if no errors
+            ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
+
+            // !!! ILDE:TBD
+
+            // Add block to history
+            // let fblock = addPhash(action, mem.phash);
+            // let encodedBlock = encodeBlock(fblock);
+            // ignore history.add(encodedBlock);
+            // mem.phash := hashBlock(encodedBlock);
+
+            #Ok(blockId);
+        };
+
+        // Handle transaction retrieval and archiving
+        public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
+            let length = Nat.min(req.length, 1000);
+            let end = history.end();
+            let start = history.start();
+            let resp_length = Nat.min(length, end - start);
+            let transactions = Array.tabulate<BlockIlde>(resp_length, func (i) {  //ILDE NOTE "Block" ---> "BlockIlde"
+                let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
+                block;
+                }); 
+
+            {
+                first_index=start;
+                log_length=end;
+                transactions;
+                archived_transactions = [];
+            }
+        };
+    };
+};
 
 actor {
 
@@ -114,15 +213,15 @@ actor {
         chain.dispatch(action);
     };
 
-    //ILDEBegin
-    public type Value = { 
-        #Blob : Blob; 
-        #Text : Text; 
-        #Nat : Nat;
-        #Int : Int;
-        #Array : [Value]; 
-        #Map : [(Text, Value)]; 
-    };
+    // //ILDEBegin
+    // public type Value = { 
+    //     #Blob : Blob; 
+    //     #Text : Text; 
+    //     #Nat : Nat;
+    //     #Int : Int;
+    //     #Array : [Value]; 
+    //     #Map : [(Text, Value)]; 
+    // };
 
     // variant { Map = vec {
     // record { "btype"; "variant" { Text = "1mint" }};
@@ -160,7 +259,7 @@ actor {
     //         };
     //     };
     // };
-   public type ActionIldeWithPhash = T.ActionIlde and { phash : Blob }; // adds a field at the top level
+   // public type ActionIldeWithPhash = T.ActionIlde and { phash : Blob }; // adds a field at the top level
 
 //    public type Burn1 = { 
 //         btype: Text;
@@ -183,21 +282,124 @@ actor {
 //         #type2: Burn2;
 //     };
 
-    public type ErrorIlde = {  //OK
-        #GenericError : { message : Text; error_code : Nat };
-        #TemporarilyUnavailable;
-        #BadBurn : { min_burn_amount : Nat };
-        #Duplicate : { duplicate_of : Nat };
-        #BadFee : { expected_fee : Nat };
-        #CreatedInFuture : { ledger_time : Nat64 };
-        #TooOld;
-        #InsufficientFunds : { balance : Nat };
-    };
-    
+   
     //public type ActionWithPhash = Action and { phash : Blob };    // THIS IS NOIT CORRECT. I think this should be "type Value" == "ValueWithPhash"
 
+    //ILDE: modified version of rechain
+    // public type BlockIlde = { 
+    //     #Blob : Blob; 
+    //     #Text : Text; 
+    //     #Nat : Nat;
+    //     #Int : Int;
+    //     #Array : [BlockIlde]; 
+    //     #Map : [(Text, BlockIlde)]; 
+    // };
+    // module{
+    //     public type MemIlde = {
+    //         history : SWB.StableData<BlockIlde>;
+    //         var phash : Blob;
+    //     };
+    //     public func MemIlde() : MemIlde {
+    //         {
+    //             history = SWB.SlidingWindowBufferNewMem<BlockIlde>();
+    //             var phash = Blob.fromArray([0]);
+    //         }
+    //     };
+    // };
+    // public type ActionReducer<A,B> = (A) -> ReducerResponse<B>;
+    // public type BlockId = Nat;
+    // public type ReducerResponse<E> = {
+    //     #Ok: (BlockId) -> ();
+    //     #Pass;
+    //     #Err : E
+    // };
+    // public type GetBlocksRequest = { start : Nat; length : Nat };
+    // public type GetTransactionsResponse = {
+    //     first_index : Nat;
+    //     log_length : Nat;
+    //     transactions : [BlockIlde];
+    //     archived_transactions : [ArchivedRange];
+    // };
+    // public type ArchivedRange = {
+    //     callback : shared query GetBlocksRequest -> async TransactionRange;
+    //     start : Nat;
+    //     length : Nat;
+    // };
+    // public type TransactionRange = { transactions : [BlockIlde] };
+
+    // public class ChainIlde<A,E,B>({
+    //     mem: MemIlde;
+    //     //mem: Mem<A>;
+    //     encodeBlock: (B) -> BlockIlde;
+    //     //addPhash: (A, phash: Blob) -> B;
+    //     addPhash: (BlockIlde, phash: Blob) -> BlockIlde;
+    //     //hashBlock: (Block) -> Blob;
+    //     hashBlock: (BlockIlde) -> Blob;
+    //     reducers : [ActionReducer<A,E>];
+    //     }) {// ---->IMHERE
+    //     let history = SWB.SlidingWindowBuffer<BlockIlde>(mem.history);
+
+    //     public func dispatch( action: A ) : {#Ok : BlockId;  #Err: E } {
+
+    //         // Execute reducers
+    //         let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
+
+    //         // Check if any reducer returned an error and terminate if so
+    //         let hasError = Array.find<ReducerResponse<E>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
+    //         switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
+
+    //         let blockId = history.end() + 1;
+    //         // Execute state changes if no errors
+    //         ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
+
+    //         // Add block to history
+    //         let fblock = addPhash(action, mem.phash);
+    //         let encodedBlock = encodeBlock(fblock);
+    //         ignore history.add(encodedBlock);
+    //         mem.phash := hashBlock(encodedBlock);
+
+    //         #Ok(blockId);
+    //     };
+
+    //     // Handle transaction retrieval and archiving
+    //     public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
+    //         let length = Nat.min(req.length, 1000);
+    //         let end = history.end();
+    //         let start = history.start();
+    //         let resp_length = Nat.min(length, end - start);
+    //         let transactions = Array.tabulate<Block>(resp_length, func (i) {
+    //             let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
+    //             block;
+    //             }); 
+
+    //         {
+    //             first_index=start;
+    //             log_length=end;
+    //             transactions;
+    //             archived_transactions = [];
+    //         }
+    //     };
+    // };
+
+    // -- Reducer : Balances
+    stable let balances_ilde_mem = BalancesIlde.Mem();
+    let balancesIlde = BalancesIlde.BalancesIlde({
+        config;
+        mem = balances_ilde_mem;
+    });
+
+    // -- Reducer : Deduplication
+
+    stable let dedup_ilde_mem = DeduplicationIlde.Mem();
+    let dedupIlde = DeduplicationIlde.DeduplicationIlde({
+        config;
+        mem = dedup_ilde_mem;
+    });
+
     // -- Chain
-    let chain_mem_ilde = Chain.Mem();
+
+    let chain_mem_ilde = rechainIlde.MemIlde();
+
 
     // below methods are used to create block entries
     // I understand that block entry has following format:
@@ -208,31 +410,33 @@ actor {
     //    1)NO  phash+1=hashBlock(encodeBlock(addHash(action_object, previous_hash=phash)))
     //    1)YES phash+1=hashBlock(addHash(encodeBlock~toGenericValue(action_object), previous_hash=phash)))
 
+    // IMHERE--->How ICDev ICRC3 example is creating blocks?
+
     // So to use Rechain, I think encodeBlock is just identity function, the hashblock is the standard
 
-    
-
-    let chain_ilde = Chain.Chain<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({
+    let chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({
         mem = chain_mem_ilde;
-        encodeBlock = func(b) = ("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
+        encodeBlock = func(b) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
                                                                // action.toGenericValue: I have to write it
                                                                // it converts the action to generic value!!!
                                                                // it converts to the action type to generic "value" type
                                                                // "to_candid" is different implementation in different languages
                                                                // instead  
                                                                // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
-        addPhash = func(a, phash) = {a with phash};            // !!!! RROR because I type is wrong above?
-        hashBlock = func(b) = Sha256.fromBlob(#sha224, b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
-        reducers = [dedup.reducer, balances.reducer];      //<-----REDO
+        addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
+        hashBlock = func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
+        reducers = [dedupIlde.reducer, balancesIlde.reducer];      //<-----REDO
     });
 
-    public shared(msg) func add_record(x: T.ActionIlde): async Nat{
+    public shared(msg) func add_record(x: T.ActionIlde): async Nat {
         //return icrc3().add_record<system>(x, null);
 
         //add block to ledger
-        //chain_ilde.dispatch(x);  //handle error
-
-        return 0;
+        let ret = chain_ilde.dispatch(x);  //handle error
+        switch (ret) {
+            case (#Ok(p)) return 0;
+            case (#Err(p)) return 0;
+        }; 
     };
 
 };
