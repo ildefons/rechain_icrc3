@@ -16,7 +16,8 @@ import BalancesIlde "reducers/balancesIlde";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
 import rechainIlde "./rechainIlde";
-
+import Vec "mo:vector";
+import Nat64 "mo:base/Nat64";
 
 // module rechainIlde {
 //     public type BlockIlde = { 
@@ -419,7 +420,55 @@ actor {
 
     func encodeBlock(b: T.ActionIlde) : rechainIlde.BlockIlde {
         // conersion T.ActionIlde) ---> rechainIlde.BlockIlde
-        
+        // public type ActionIlde = {
+        //     ts: Nat64;
+        //     created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
+        //     memo: ?Blob; //ILDE: I have added after the discussion with V
+        //     caller: Principal;  //ILDE: I have added after the discussion with V 
+        //     fee: ?Nat;
+        //     payload : {
+        //         #burn : {
+        //             amt: Nat;
+        //             from: [Blob];
+        //         };
+        //         #transfer : {
+        //             to : [Blob];
+        //             from : [Blob];
+        //             amt : Nat;
+        //         };
+        //         #transfer_from : {
+        //             to : [Blob];
+        //             from : [Blob];
+        //             amt : Nat;
+        //         };
+        //         #mint : {
+        //             to : [Blob];
+        //             amt : Nat;
+        //         };
+        //     };
+        // };
+
+        //  public type BlockIlde = { 
+        //     #Blob : Blob; 
+        //     #Text : Text; 
+        //     #Nat : Nat;
+        //     #Int : Int;
+        //     #Array : [BlockIlde]; 
+        //     #Map : [(Text, BlockIlde)]; 
+        // };
+        let trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+        // ts: Nat64;
+        Vec.add(trx, ("ts", #Nat(Nat64.toNat(b.ts))));
+        // created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
+        let created_at_time: Nat64 = switch (b.created_at_time) {
+            case null 0;
+            case (?Nat) Nat;
+        };
+        Vec.add(trx, ("created_at_time", #Nat(Nat64.toNat(created_at_time))));
+        // memo: ?Blob; //ILDE: I have added after the discussion with V
+        //--->IMHERE
+        // caller: Principal;  //ILDE: I have added after the discussion with V 
+        // fee: ?Nat;
         #Blob("0" : Blob);
     };
 
