@@ -459,16 +459,32 @@ actor {
         let trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
         // ts: Nat64;
         Vec.add(trx, ("ts", #Nat(Nat64.toNat(b.ts))));
-        // created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
+        // created_at_time: ?Nat64; 
         let created_at_time: Nat64 = switch (b.created_at_time) {
             case null 0;
             case (?Nat) Nat;
         };
         Vec.add(trx, ("created_at_time", #Nat(Nat64.toNat(created_at_time))));
-        // memo: ?Blob; //ILDE: I have added after the discussion with V
-        //--->IMHERE
-        // caller: Principal;  //ILDE: I have added after the discussion with V 
+        // memo: ?Blob; 
+        let memo: Blob = switch (b.memo) {
+            case null "0" : Blob;
+            case (?Blob) Blob;
+        };
+        Vec.add(trx, ("memo", #Blob(memo)));
+        // caller: Principal; 
+        Vec.add(trx, ("caller", #Blob(Principal.toBlob(b.caller))));
         // fee: ?Nat;
+        let fee: Nat = switch (b.fee) {
+            case null 0;
+            case (?Nat) Nat;
+        };
+        Vec.add(trx, ("fee", #Nat(fee)));
+
+        // create a new "payload_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();"
+        // covert to #Map
+        // add to trx
+        // convert add to #Map
+
         #Blob("0" : Blob);
     };
 
