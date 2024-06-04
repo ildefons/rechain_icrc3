@@ -114,7 +114,7 @@ module {
             let thisTrx = #Map(Vec.toArray(trx));
             
             // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
-            mem.phash := ?Blob.fromArray(RepIndy.hash_val(thisTrx));
+            mem.phash := ?hashBlock(thisTrx);//?Blob.fromArray(RepIndy.hash_val(thisTrx));
 
             // 4) Add new block to ledger/history
             ignore history.add(thisTrx);
