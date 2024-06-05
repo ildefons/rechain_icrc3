@@ -20,21 +20,21 @@ import Vec "mo:vector";
 import RepIndy "mo:rep-indy-hash";
 
 module {
-    public type BlockIlde = { 
-        #Blob : Blob; 
-        #Text : Text; 
-        #Nat : Nat;
-        #Int : Int;
-        #Array : [BlockIlde]; 
-        #Map : [(Text, BlockIlde)]; 
-    };
+    // public type BlockIlde = { 
+    //     #Blob : Blob; 
+    //     #Text : Text; 
+    //     #Nat : Nat;
+    //     #Int : Int;
+    //     #Array : [BlockIlde]; 
+    //     #Map : [(Text, BlockIlde)]; 
+    // };
     public type MemIlde = {
-        history : SWB.StableData<BlockIlde>;
+        history : SWB.StableData<T.BlockIlde>;
         var phash : ?Blob;   // ILDE: I allow to be null in case of first block
     };
     public func MemIlde() : MemIlde {
         {
-            history = SWB.SlidingWindowBufferNewMem<BlockIlde>();
+            history = SWB.SlidingWindowBufferNewMem<T.BlockIlde>();
             var phash = null; //ILDE: before Blob.fromArray([0]);
         }
     };
@@ -49,7 +49,7 @@ module {
     public type GetTransactionsResponse = {
         first_index : Nat;
         log_length : Nat;
-        transactions : [BlockIlde];
+        transactions : [T.BlockIlde];
         archived_transactions : [ArchivedRange];
     };
     public type ArchivedRange = {
@@ -57,19 +57,19 @@ module {
         start : Nat;
         length : Nat;
     };
-    public type TransactionRange = { transactions : [BlockIlde] };
+    public type TransactionRange = { transactions : [T.BlockIlde] };
 
     public class ChainIlde<A,E,B>({
         mem: MemIlde;
         //mem: Mem<A>;
-        encodeBlock: (A) -> BlockIlde;   //ILDE: I changed B--->A 
+        encodeBlock: (A) -> T.BlockIlde;   //ILDE: I changed B--->A 
         //addPhash: (A, phash: Blob) -> B;
-        addPhash: (BlockIlde, phash: Blob) -> BlockIlde;
+        addPhash: (T.BlockIlde, phash: Blob) -> T.BlockIlde;
         //hashBlock: (Block) -> Blob;
-        hashBlock: (BlockIlde) -> Blob;
+        hashBlock: (T.BlockIlde) -> Blob;
         reducers : [ActionReducer<A,E>];
         }) {// ---->IMHERE
-        let history = SWB.SlidingWindowBuffer<BlockIlde>(mem.history);
+        let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
 
         public func dispatch( action: A ) : {#Ok : BlockId;  #Err: E } {
             //ILDE: The way I serve the reducers does not change
@@ -95,12 +95,12 @@ module {
 
             // 1) translate A (ActionIlde: type from ledger project) to (BlockIlde: ICRC3 standard type defined in this same module)
             // "encodeBlock" is responsible for this transformation
-            let encodedBlock: BlockIlde = encodeBlock(action);
+            let encodedBlock: T.BlockIlde = encodeBlock(action);
 
             // <---IMHERE
             // 2) create new block according to steps 2-4 from ICDev ICRC3 implementation
             // creat enew empty block entry
-            let trx = Vec.new<(Text, BlockIlde)>();
+            let trx = Vec.new<(Text, T.BlockIlde)>();
             // Add phash to empty block (null if not the first block)
             switch(mem.phash){
                 case(null) {};
@@ -133,7 +133,7 @@ module {
             let end = history.end();
             let start = history.start();
             let resp_length = Nat.min(length, end - start);
-            let transactions = Array.tabulate<BlockIlde>(resp_length, func (i) {  //ILDE NOTE "Block" ---> "BlockIlde"
+            let transactions = Array.tabulate<T.BlockIlde>(resp_length, func (i) {  //ILDE NOTE "Block" ---> "BlockIlde"
                 let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
                 block;
                 }); 

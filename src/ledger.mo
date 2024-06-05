@@ -419,7 +419,7 @@ actor {
 
     // So to use Rechain, I think encodeBlock is just identity function, the hashblock is the standard
 
-    func encodeBlock(b: T.ActionIlde) : rechainIlde.BlockIlde {
+    func encodeBlock(b: T.ActionIlde) : T.BlockIlde {
         // conersion T.ActionIlde) ---> rechainIlde.BlockIlde
         // public type ActionIlde = {
         //     ts: Nat64;
@@ -457,7 +457,7 @@ actor {
         //     #Array : [BlockIlde]; 
         //     #Map : [(Text, BlockIlde)]; 
         // };
-        let trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+        let trx = Vec.new<(Text, T.BlockIlde)>();
         // ts: Nat64;
         Vec.add(trx, ("ts", #Nat(Nat64.toNat(b.ts))));
         // created_at_time: ?Nat64; 
@@ -500,10 +500,10 @@ actor {
         // create a new "payload_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();"
         let payload_trx = switch (b.payload) {
             case (#burn(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<rechainIlde.BlockIlde>();
+                let trx_from = Vec.new<T.BlockIlde>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
@@ -514,16 +514,16 @@ actor {
                 inner_trx_array;     
             };
             case (#transfer(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<rechainIlde.BlockIlde>();
+                let trx_from = Vec.new<T.BlockIlde>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
                 let trx_from_array = Vec.toArray(trx_from);
                 Vec.add(inner_trx, ("from", #Array(trx_from_array)));  
-                let trx_to = Vec.new<rechainIlde.BlockIlde>();
+                let trx_to = Vec.new<T.BlockIlde>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -534,10 +534,10 @@ actor {
                 inner_trx_array; 
             };
             case (#mint(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_to = Vec.new<rechainIlde.BlockIlde>();
+                let trx_to = Vec.new<T.BlockIlde>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -548,16 +548,16 @@ actor {
                 inner_trx_array; 
             };
             case (#transfer_from(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<rechainIlde.BlockIlde>();
+                let trx_from = Vec.new<T.BlockIlde>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
                 let trx_from_array = Vec.toArray(trx_from);
                 Vec.add(inner_trx, ("from", #Array(trx_from_array)));  
-                let trx_to = Vec.new<rechainIlde.BlockIlde>();
+                let trx_to = Vec.new<T.BlockIlde>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -572,11 +572,11 @@ actor {
         #Map(Vec.toArray(trx));
     };
 
-    func hashBlock(b: rechainIlde.BlockIlde) : Blob {
+    func hashBlock(b: T.BlockIlde) : Blob {
         Blob.fromArray(RepIndy.hash_val(b));
     };
 
-    public shared(msg) func test1(): async rechainIlde.BlockIlde {
+    public shared(msg) func test1(): async T.BlockIlde {
         let myin: T.ActionIlde = {
             ts = 3;
             created_at_time = null;

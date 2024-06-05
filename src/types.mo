@@ -65,6 +65,16 @@ module {
             };
         };
     };
+
+    public type BlockIlde = { 
+        #Blob : Blob; 
+        #Text : Text; 
+        #Nat : Nat;
+        #Int : Int;
+        #Array : [BlockIlde]; 
+        #Map : [(Text, BlockIlde)]; 
+    };
+
     public type ActionIldeWithPhash = ActionIlde and  {phash: Blob} ; // adds a field at the top level
     //ILDEEnd
 
