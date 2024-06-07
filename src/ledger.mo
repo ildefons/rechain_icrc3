@@ -510,7 +510,7 @@ actor {
                 let trx_from_array = Vec.toArray(trx_from);
                 Vec.add(inner_trx, ("from", #Array(trx_from_array)));  
                 let inner_trx_array = Vec.toArray(inner_trx);
-                Vec.add(trx, ("payload", #Map(inner_trx_array)));  
+                //Vec.add(trx, ("payload", #Map(inner_trx_array)));  
                 inner_trx_array;     
             };
             case (#transfer(data)) {
@@ -530,7 +530,7 @@ actor {
                 let trx_to_array = Vec.toArray(trx_to);
                 Vec.add(inner_trx, ("to", #Array(trx_to_array))); 
                 let inner_trx_array = Vec.toArray(inner_trx);
-                Vec.add(trx, ("payload", #Map(inner_trx_array)));  
+                //Vec.add(trx, ("payload", #Map(inner_trx_array)));  
                 inner_trx_array; 
             };
             case (#mint(data)) {
@@ -544,7 +544,7 @@ actor {
                 let trx_to_array = Vec.toArray(trx_to);
                 Vec.add(inner_trx, ("to", #Array(trx_to_array)));  
                 let inner_trx_array = Vec.toArray(inner_trx);
-                Vec.add(trx, ("payload", #Map(inner_trx_array)));  
+                //Vec.add(trx, ("payload", #Map(inner_trx_array)));  
                 inner_trx_array; 
             };
             case (#transfer_from(data)) {
@@ -584,13 +584,51 @@ actor {
             memo = null; 
             caller = let principal = Principal.fromText("un4fu-tqaaa-aaaab-qadjq-cai"); 
             payload = #burn({
-                    amt=4;
+                    amt=2;
                     from=[("0" : Blob)];
                 });
         };
         encodeBlock(myin);        
     };
-    
+    public shared(msg) func test2(): async (Nat) {
+
+        let mymint: T.ActionIlde = {
+            ts = 3;
+            created_at_time = null;
+            fee = null;
+            memo = null; 
+            caller = let principal = Principal.fromText("un4fu-tqaaa-aaaab-qadjq-cai"); 
+            payload = #mint({
+                    amt=20000;
+                    to=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
+                });
+        };
+
+        let myin: T.ActionIlde = {
+            ts = 3;
+            created_at_time = null;
+            fee = null;
+            memo = null; 
+            caller = let principal = Principal.fromText("un4fu-tqaaa-aaaab-qadjq-cai"); 
+            payload = #burn({
+                    amt=2;
+                    from=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
+                });
+        };
+        
+        let a = await add_record(mymint);
+
+        // let aa: Nat = switch(a) {
+        //     case (#Ok(pp)) pp;
+        //     case (_) 0;
+        // };
+
+        Debug.print("History size before:"#Nat.toText(a));
+        let b =await add_record(myin);
+        Debug.print("History size before:"#Nat.toText(b));
+        return 0;
+                
+    };
     let chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({  //ILDE: I think "T.ActionIldeWithPhash" is no lomger necessary
         mem = chain_mem_ilde;
         encodeBlock = encodeBlock;//func(b: T.ActionIlde) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
@@ -602,7 +640,7 @@ actor {
                                                                // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
         addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
         hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
-        reducers = [dedupIlde.reducer, balancesIlde.reducer];      //<-----REDO
+        reducers = [balancesIlde.reducer];//[dedupIlde.reducer, balancesIlde.reducer];      //<-----REDO
     });
 
     public shared(msg) func add_record(x: T.ActionIlde): async Nat {
@@ -611,8 +649,15 @@ actor {
         //add block to ledger
         let ret = chain_ilde.dispatch(x);  //handle error
         switch (ret) {
-            case (#Ok(p)) return 0;
-            case (#Err(p)) return 0;
+            case (#Ok(p)) {
+                Debug.print("Ok");
+                return p;
+            };
+            case (#Err(p)) {
+                //<---I MHERE WHY????  Reducer BalcerIlde is giving error
+                Debug.print("Error");
+                return 0;
+            }
         }; 
     };
 
