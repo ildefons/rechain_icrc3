@@ -19,6 +19,7 @@ import rechainIlde "./rechainIlde";
 import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
+import Timer "mo:base/Timer";
 
 // module rechainIlde {
 //     public type BlockIlde = { 
@@ -590,7 +591,7 @@ actor {
         };
         encodeBlock(myin);        
     };
-    public shared(msg) func test2(): async (Nat) {
+    public func test2(): async (Nat) {
 
         let mymint: T.ActionIlde = {
             ts = 3;
@@ -622,13 +623,25 @@ actor {
         //     case (#Ok(pp)) pp;
         //     case (_) 0;
         // };
+        let c = await add_record(mymint);
+        //Debug.print("History size before:"#Nat.toText(a));
+        let b = await add_record(myin);
+        //Debug.print("History size before:"#Nat.toText(b));
 
-        Debug.print("History size before:"#Nat.toText(a));
-        let b =await add_record(myin);
-        Debug.print("History size before:"#Nat.toText(b));
+
+        var aux = Timer.setTimer(#seconds(5), check_clean_up); 
+
+
         return 0;
                 
     };
+
+    func check_clean_up() : async (){
+            //clear the timer
+        Debug.print("Cleanins up");
+        
+    };
+
     let chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({  //ILDE: I think "T.ActionIldeWithPhash" is no lomger necessary
         mem = chain_mem_ilde;
         encodeBlock = encodeBlock;//func(b: T.ActionIlde) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
@@ -647,7 +660,7 @@ actor {
         //return icrc3().add_record<system>(x, null);
 
         //add block to ledger
-        let ret = chain_ilde.dispatch(x);  //handle error
+        let ret = await chain_ilde.dispatch(x);  //handle error
         switch (ret) {
             case (#Ok(p)) {
                 Debug.print("Ok");
