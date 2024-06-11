@@ -674,70 +674,91 @@ actor {
 
     // ICRC-1
     public shared ({ caller }) func icrc1_transfer(req : ICRC.TransferArg) : async ICRC.Result {
-        transfer(caller, req);
+        let ret = await transfer(caller, req);
+        ret;
     };
 
     public query func icrc1_balance_of(acc: ICRC.Account) : async Nat {
         balancesIlde.get(acc)
     };
 
+    // ILDE: TO BE DONE
     // Oversimplified ICRC-4
-    public shared({caller}) func batch_transfer(req: [ICRC.TransferArg]) : async [ICRC.Result] {
-        Array.map<ICRC.TransferArg, ICRC.Result>(req, func (r) = transfer(caller, r));
-    };
+    // public shared({caller}) func batch_transfer(req: [ICRC.TransferArg]) : async [ICRC.Result] {
+    //     Array.map<ICRC.TransferArg, ICRC.Result>(req, func (r) = transfer(caller, r));
+    // };
 
-    // ---->IMHERE: I understand I need a different get_transactions that is consistent with ICRC3 standard format
+    // ILDETO BE DONE!!!
+    // ---->I understand I need a different get_transactions that is consistent with ICRC3 standard format
     // ----> So I need to convert motoko objects to ICRC3 blocks 
     // ----> It also says that "It also needs archival mechanism that spawns canisters, move blocks to them" (later)
     // . Alternative to ICRC-3 
-    public query func get_transactions(req: rechainIlde.GetBlocksRequest) : async rechainIlde.GetTransactionsResponse {
-        chain_ilde.get_transactions(req);
-    };
+    // public query func get_transactions(req: rechainIlde.GetBlocksRequest) : async rechainIlde.GetTransactionsResponse {
+    //     chain_ilde.get_transactions(req);
+    // };
 
     // --
   
-    private func transfer(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
+    private func transfer(caller:Principal, req:ICRC.TransferArg) : async ICRC.Result {
         let from : ICRC.Account = {
             owner = caller;
             subaccount = req.from_subaccount;
         };
 
-        let payload : T.Payload = if (from == config.MINTING_ACCOUNT) {    // ILDE: repassar payload
+        let payload = if (from == config.MINTING_ACCOUNT) {    // ILDE: repassar payload
             let pri_blob: Blob = Principal.toBlob(req.to.owner);
             let aux = req.to.subaccount;
-            let aux_blob: Blob = switch(aux) {
-                case (?Blob) Blob;
-                case (_) ("0": Blob);
+            let to_blob: [Blob] = switch aux {
+                case (?Blob) [pri_blob, Blob];
+                case (_) [pri_blob];
             };
-            let to_blob = [pri_blob, aux_blob];
             #mint({
                 to = to_blob;
                 amt = req.amount;
             });
         } else if (req.to == config.MINTING_ACCOUNT) {
-            var from_blob = null;
-            switch(req.from_subaccount) {
-                case (Blob) {from_blob := [req.from_subaccount]};
-                case (_) {to_blob := [("0": Blob)]};
+            let from_blob: [Blob] = switch (req.from_subaccount) {
+                case (?Blob) [Blob];
+                case (_) [("0": Blob)];
             };
             #burn({
                 from = from_blob;
                 amt = req.amount;
             });
+        } else if (false){ //ILDE: This never happens is here to avoid return type error
+            let fee:Nat = switch(req.fee) {
+                case (?Nat) Nat;
+                case (_) 0:Nat;
+            };
+            let pri_blob: Blob = Principal.toBlob(req.to.owner);
+            let aux = req.to.subaccount;
+            let to_blob: [Blob] = switch aux {
+                case (?Blob) [pri_blob, Blob];
+                case (_) [pri_blob];
+            };
+            let from_blob: [Blob] = switch (req.from_subaccount) {
+                case (?Blob) [Blob];
+                case (_) [("0": Blob)];
+            };
+            #transfer_from({
+                to = to_blob;
+                from = from_blob;
+                amt = req.amount;
+            });
         } else {
-            let fee = switch(req.fee) {
-                case (Nat) Nat;
-                case null 0;
+            let fee:Nat = switch(req.fee) {
+                case (?Nat) Nat;
+                case (_) 0:Nat;
             };
-            var to_blob = null;
-            switch(req.to.subaccount) {
-                case (Blob) {to_blob := [Principal.toBlob(req.to.owner), req.to.subaccount]};
-                case (_) {to_blob := [Principal.toBlob(req.to.owner)]};
+            let pri_blob: Blob = Principal.toBlob(req.to.owner);
+            let aux = req.to.subaccount;
+            let to_blob: [Blob] = switch aux {
+                case (?Blob) [pri_blob, Blob];
+                case (_) [pri_blob];
             };
-            var from_blob = null;
-            switch(req.from_subaccount) {
-                case (Blob) {from_blob := [req.from_subaccount]};
-                case (_) {to_blob := [("0": Blob)]};
+            let from_blob: [Blob] = switch (req.from_subaccount) {
+                case (?Blob) [Blob];
+                case (_) [("0": Blob)];
             };
             #transfer({
                 to = to_blob;
@@ -747,8 +768,14 @@ actor {
             });
         };
 
+        let ts:Nat64 = switch (req.created_at_time) {
+            case (?Nat64) Nat64;
+            case (_) 0:Nat64;
+        };
+
         let action = {
-            ts = req.created_at_time;
+            caller = caller;
+            ts = ts;
             created_at_time = req.created_at_time;
             memo = req.memo;
             fee = req.fee;
@@ -765,7 +792,19 @@ actor {
         //     from=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
         // });
 
-        chain_ilde.dispatch(action);
+        let ret = await chain_ilde.dispatch(action);
+        return ret;
+        // switch (ret) {
+        //     case (#Ok(p)) {
+        //         Debug.print("Ok");
+        //         ret;
+        //     };
+        //     case (#Err(p)) {
+        //         //<---I MHERE WHY????  Reducer BalcerIlde is giving error
+        //         Debug.print("Error");
+        //         ret;
+        //     }
+        // }; 
     };
 
 };
