@@ -7,11 +7,10 @@ import Blob "mo:base/Blob";
 import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
-import Chain "mo:rechain";
-import Deduplication "./reducers/deduplication";
+//import Deduplication "./reducers/deduplication";
 import DeduplicationIlde "./reducers/deduplicationIlde";
 import T "./types";
-import Balances "reducers/balances";
+//import Balances "reducers/balances";
 import BalancesIlde "reducers/balancesIlde";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
@@ -20,7 +19,6 @@ import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
 import Timer "mo:base/Timer";
-
 // module rechainIlde {
 //     public type BlockIlde = { 
 //         #Blob : Blob; 
@@ -131,93 +129,93 @@ actor {
             }
     };
 
-    // -- Reducer : Balances
-    stable let balances_mem = Balances.Mem();
-    let balances = Balances.Balances({
-        config;
-        mem = balances_mem;
-    });
+    // // -- Reducer : Balances
+    // stable let balances_mem = BalancesIlde.Mem();
+    // let balances = BalancesIlde.BalancesIlde({
+    //     config;
+    //     mem = balances_mem;
+    // });
 
-    // -- Reducer : Deduplication
+    // // -- Reducer : Deduplication
 
-    stable let dedup_mem = Deduplication.Mem();
-    let dedup = Deduplication.Deduplication({
-        config;
-        mem = dedup_mem;
-    });
+    // stable let dedup_mem = DeduplicationIlde.Mem();
+    // let dedup = DeduplicationIlde.DeduplicationIlde({
+    //     config;
+    //     mem = dedup_mem;
+    // });
 
-    // -- Chain
-    let chain_mem = Chain.Mem();
+    // // -- Chain
+    // let chain_mem = Chain.Mem();
 
-    let chain = Chain.Chain<T.Action, T.ActionError, T.ActionWithPhash>({
-        mem = chain_mem;
-        encodeBlock = func(b) = ("myschemaid", to_candid (b));
-        addPhash = func(a, phash) = {a with phash};
-        hashBlock = func(b) = Sha256.fromBlob(#sha224, b.1);
-        reducers = [dedup.reducer, balances.reducer];
-    });
-
-    // --
-
-    // ICRC-1
-    public shared ({ caller }) func icrc1_transfer(req : ICRC.TransferArg) : async ICRC.Result {
-        transfer(caller, req);
-    };
-
-    public query func icrc1_balance_of(acc: ICRC.Account) : async Nat {
-        balances.get(acc)
-    };
-
-    // Oversimplified ICRC-4
-    public shared({caller}) func batch_transfer(req: [ICRC.TransferArg]) : async [ICRC.Result] {
-        Array.map<ICRC.TransferArg, ICRC.Result>(req, func (r) = transfer(caller, r));
-    };
-
-    // ---->IMHERE: I understand I need a different get_transactions that is consistent with ICRC3 standard format
-    // ----> So I need to convert motoko objects to ICRC3 blocks 
-    // ----> It also says that "It also needs archival mechanism that spawns canisters, move blocks to them" (later)
-    // . Alternative to ICRC-3 
-    public query func get_transactions(req: Chain.GetBlocksRequest) : async Chain.GetTransactionsResponse {
-        chain.get_transactions(req);
-    };
+    // let chain = Chain.Chain<T.Action, T.ActionError, T.ActionWithPhash>({
+    //     mem = chain_mem;
+    //     encodeBlock = func(b) = ("myschemaid", to_candid (b));
+    //     addPhash = func(a, phash) = {a with phash};
+    //     hashBlock = func(b) = Sha256.fromBlob(#sha224, b.1);
+    //     reducers = [dedup.reducer, balances.reducer];
+    // });
 
     // --
+
+    // // ICRC-1
+    // public shared ({ caller }) func icrc1_transfer(req : ICRC.TransferArg) : async ICRC.Result {
+    //     transfer(caller, req);
+    // };
+
+    // public query func icrc1_balance_of(acc: ICRC.Account) : async Nat {
+    //     balances.get(acc)
+    // };
+
+    // // Oversimplified ICRC-4
+    // public shared({caller}) func batch_transfer(req: [ICRC.TransferArg]) : async [ICRC.Result] {
+    //     Array.map<ICRC.TransferArg, ICRC.Result>(req, func (r) = transfer(caller, r));
+    // };
+
+    // // ---->IMHERE: I understand I need a different get_transactions that is consistent with ICRC3 standard format
+    // // ----> So I need to convert motoko objects to ICRC3 blocks 
+    // // ----> It also says that "It also needs archival mechanism that spawns canisters, move blocks to them" (later)
+    // // . Alternative to ICRC-3 
+    // public query func get_transactions(req: Chain.GetBlocksRequest) : async Chain.GetTransactionsResponse {
+    //     chain.get_transactions(req);
+    // };
+
+    // // --
   
-    private func transfer(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
-        let from : ICRC.Account = {
-            owner = caller;
-            subaccount = req.from_subaccount;
-        };
+    // private func transfer(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
+    //     let from : ICRC.Account = {
+    //         owner = caller;
+    //         subaccount = req.from_subaccount;
+    //     };
 
-        let payload : T.Payload = if (from == config.MINTING_ACCOUNT) {
-            #mint({
-                to = req.to;
-                amount = req.amount;
-            });
-        } else if (req.to == config.MINTING_ACCOUNT) {
-            #burn({
-                from = from;
-                amount = req.amount;
-            });
-        } else {
-            #transfer({
-                to = req.to;
-                fee = req.fee;
-                from = from;
-                amount = req.amount;
-            });
-        };
+    //     let payload : T.Payload = if (from == config.MINTING_ACCOUNT) {
+    //         #mint({
+    //             to = req.to;
+    //             amount = req.amount;
+    //         });
+    //     } else if (req.to == config.MINTING_ACCOUNT) {
+    //         #burn({
+    //             from = from;
+    //             amount = req.amount;
+    //         });
+    //     } else {
+    //         #transfer({
+    //             to = req.to;
+    //             fee = req.fee;
+    //             from = from;
+    //             amount = req.amount;
+    //         });
+    //     };
 
-        let action = {
-            caller;
-            created_at_time = req.created_at_time;
-            memo = req.memo;
-            timestamp = U.now();
-            payload;
-        };
+    //     let action = {
+    //         caller;
+    //         created_at_time = req.created_at_time;
+    //         memo = req.memo;
+    //         timestamp = U.now();
+    //         payload;
+    //     };
 
-        chain.dispatch(action);
-    };
+    //     chain.dispatch(action);
+    // };
 
     // //ILDEBegin
     // public type Value = { 
@@ -629,18 +627,18 @@ actor {
         //Debug.print("History size before:"#Nat.toText(b));
 
 
-        var aux = Timer.setTimer(#seconds(5), check_clean_up); 
+        //var aux = Timer.setTimer(#seconds(5), check_clean_up); 
 
 
         return 0;
                 
     };
 
-    func check_clean_up() : async (){
-            //clear the timer
-        Debug.print("Cleanins up");
+    // func check_clean_up() : async (){
+    //         //clear the timer
+    //     Debug.print("Cleanins up");
         
-    };
+    // };
 
     let chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({  //ILDE: I think "T.ActionIldeWithPhash" is no lomger necessary
         mem = chain_mem_ilde;
@@ -674,4 +672,137 @@ actor {
         }; 
     };
 
+    // ICRC-1
+    public shared ({ caller }) func icrc1_transfer(req : ICRC.TransferArg) : async ICRC.Result {
+        transfer(caller, req);
+    };
+
+    public query func icrc1_balance_of(acc: ICRC.Account) : async Nat {
+        balancesIlde.get(acc)
+    };
+
+    // Oversimplified ICRC-4
+    public shared({caller}) func batch_transfer(req: [ICRC.TransferArg]) : async [ICRC.Result] {
+        Array.map<ICRC.TransferArg, ICRC.Result>(req, func (r) = transfer(caller, r));
+    };
+
+    // ---->IMHERE: I understand I need a different get_transactions that is consistent with ICRC3 standard format
+    // ----> So I need to convert motoko objects to ICRC3 blocks 
+    // ----> It also says that "It also needs archival mechanism that spawns canisters, move blocks to them" (later)
+    // . Alternative to ICRC-3 
+    public query func get_transactions(req: rechainIlde.GetBlocksRequest) : async rechainIlde.GetTransactionsResponse {
+        chain_ilde.get_transactions(req);
+    };
+
+    // --
+  
+    private func transfer(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
+        let from : ICRC.Account = {
+            owner = caller;
+            subaccount = req.from_subaccount;
+        };
+
+        let payload : T.Payload = if (from == config.MINTING_ACCOUNT) {    // ILDE: repassar payload
+            let pri_blob: Blob = Principal.toBlob(req.to.owner);
+            let aux = req.to.subaccount;
+            let aux_blob: Blob = switch(aux) {
+                case (?Blob) Blob;
+                case (_) ("0": Blob);
+            };
+            let to_blob = [pri_blob, aux_blob];
+            #mint({
+                to = to_blob;
+                amt = req.amount;
+            });
+        } else if (req.to == config.MINTING_ACCOUNT) {
+            var from_blob = null;
+            switch(req.from_subaccount) {
+                case (Blob) {from_blob := [req.from_subaccount]};
+                case (_) {to_blob := [("0": Blob)]};
+            };
+            #burn({
+                from = from_blob;
+                amt = req.amount;
+            });
+        } else {
+            let fee = switch(req.fee) {
+                case (Nat) Nat;
+                case null 0;
+            };
+            var to_blob = null;
+            switch(req.to.subaccount) {
+                case (Blob) {to_blob := [Principal.toBlob(req.to.owner), req.to.subaccount]};
+                case (_) {to_blob := [Principal.toBlob(req.to.owner)]};
+            };
+            var from_blob = null;
+            switch(req.from_subaccount) {
+                case (Blob) {from_blob := [req.from_subaccount]};
+                case (_) {to_blob := [("0": Blob)]};
+            };
+            #transfer({
+                to = to_blob;
+                fee = fee;
+                from = from_blob;
+                amt = req.amount;
+            });
+        };
+
+        let action = {
+            ts = req.created_at_time;
+            created_at_time = req.created_at_time;
+            memo = req.memo;
+            fee = req.fee;
+            payload = payload;
+        };
+
+        // ts = 3;
+        // created_at_time = null;
+        // fee = null;
+        // memo = null; 
+        // caller = let principal = Principal.fromText("un4fu-tqaaa-aaaab-qadjq-cai"); 
+        // payload = #burn({
+        //     amt=2;
+        //     from=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
+        // });
+
+        chain_ilde.dispatch(action);
+    };
+
 };
+//  public type ActionIlde = {
+//         ts: Nat64;
+//         created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
+//         memo: ?Blob; //ILDE: I have added after the discussion with V
+//         caller: Principal;  //ILDE: I have added after the discussion with V 
+//         fee: ?Nat;
+//         payload : {
+//             #burn : {
+//                 amt: Nat;
+//                 from: [Blob];
+//             };
+//             #transfer : {
+//                 to : [Blob];
+//                 from : [Blob];
+//                 amt : Nat;
+//             };
+//             #transfer_from : {
+//                 to : [Blob];
+//                 from : [Blob];
+//                 amt : Nat;
+//             };
+//             #mint : {
+//                 to : [Blob];
+//                 amt : Nat;
+//             };
+//         };
+
+//   public type TransferArg = {
+//     to : Account;
+//     fee : ?Nat;
+//     memo : ?Blob;
+//     from_subaccount : ?Blob;
+//     created_at_time : ?Nat64;
+//     amount : Nat;
+//   };
+
+// public type Account = { owner : Principal; subaccount : ?Blob };

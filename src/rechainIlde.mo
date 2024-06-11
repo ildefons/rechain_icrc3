@@ -149,15 +149,15 @@ module {
             //  2) If ne cessary, create timer with a period of 0 seconds to create it
             // <---HOW TO KNOW IF NECESSARY???
             // if(Vec.size(state.ledger) > state.constants.archiveProperties.maxActiveRecords){
-            // if(history.len() > constants.maxActiveRecords){
-            //     switch(cleaningTimer){
-            //         case(null){ //only need one active timer
-            // //         debug if(debug_channel.add_record) D.print("setting clean up timer");
-            //             cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);  //<--- IM HERE
-            //         };
-            //         case(_){};
-            //     };
-            // };
+            if(history.len() > constants.maxActiveRecords){
+                switch(cleaningTimer){
+                    case(null){ //only need one active timer
+            //         debug if(debug_channel.add_record) D.print("setting clean up timer");
+                        cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);  //<--- IM HERE
+                    };
+                    case(_){};
+                };
+            };
 
 
             // let fblock = addPhash(action, mem.phash);
@@ -170,11 +170,11 @@ module {
         
         // ILDE: this function is executed by the timer to create an archive and store the current ledger
         // Is very similar to the ICDev implementation:
-        // public func check_clean_up<system>() : async (){
-        //     //clear the timer
-        //     Debug.print("Cleanins up");
-        //     cleaningTimer := null;
-        // };
+        public func check_clean_up() : async (){
+            //clear the timer
+            Debug.print("Cleanins up");
+            cleaningTimer := null;
+        };
         
         // Handle transaction retrieval and archiving
         public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
