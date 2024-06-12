@@ -782,16 +782,6 @@ actor {
             payload = payload;
         };
 
-        // ts = 3;
-        // created_at_time = null;
-        // fee = null;
-        // memo = null; 
-        // caller = let principal = Principal.fromText("un4fu-tqaaa-aaaab-qadjq-cai"); 
-        // payload = #burn({
-        //     amt=2;
-        //     from=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
-        // });
-
         let ret = await chain_ilde.dispatch(action);
         return ret;
         // switch (ret) {
