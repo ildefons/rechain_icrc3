@@ -84,7 +84,10 @@ module {
             var archiveCycles = 2_000_000_000_000; //two trillion
             var archiveControllers = null;
         };
+
+        //ILDE: state variable (in the future I will join them all in a single variable "state"
         var cleaningTimer:?Timer.TimerId = null;  //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
+        var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
 
         let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
 
@@ -177,17 +180,22 @@ module {
         //clear the timer
             cleaningTimer := null;
             Debug.print("Checking clean up Ilde");
-            ();
-        };
+            
+        
         //ensure only one cleaning job is running
     
-    //         if(state.bCleaning) return; //only one cleaning at a time;
-    //         debug if(debug_channel.clean_up) D.print("Not currently Cleaning");
-
+            if(bCleaning) return; //only one cleaning at a time;
+            D.print("Not currently Cleaning");
+        
         //don't clean if not necessary
-    //         if(Vec.size(state.ledger) < state.constants.archiveProperties.maxActiveRecords) return;
+    
+            //if(Vec.size(state.ledger) < state.constants.archiveProperties.maxActiveRecords) return;
+            if(history.len() < constants.maxActiveRecords) return;
 
-    //         state.bCleaning := true;
+        // ILDE: let know that we are creating an archive canister so noone else try at the same time
+
+            state.bCleaning := true;
+        };
 
         //cleaning
     //         debug if(debug_channel.clean_up) D.print("Now we are cleaning");
@@ -324,7 +332,7 @@ module {
     //             let result = await archive.append_transactions(Vec.toArray(toArchive));
     //             let stats = switch(result){
     //             case(#ok(stats)) stats;
-    //             case(#Full(stats)) stats;
+    //             case(#Full(stats)) stats;            //ILDE: full is not an error
     //             case(#err(_)){
     //                 //do nothing...it failed;
     //                 state.bCleaning :=false;         //ILDE: if error, we can desactivate bCleaning (set to True in the begining) and return (WHY!!!???)
