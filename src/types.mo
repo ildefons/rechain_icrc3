@@ -1,5 +1,8 @@
 import ICRC "./icrc";
 
+//ILDE added
+import SW "mo:stable-write-only"; // ILDE: I have to add mops.toml
+
 module {
     public type Config = {
         var TX_WINDOW : Nat64;
@@ -81,6 +84,14 @@ module {
     public type ActionError = ICRC.TransferError; // can add more error types with 'or'
 
     public type ActionWithPhash = Action and { phash : Blob };
+
+    //ILDEbegin
+    public type ArchiveInitArgs = {
+        maxRecords : Nat;
+        maxPages : Nat;
+        indexType : SW.IndexType;
+        firstIndex : Nat;
+    };
 
 
 }

@@ -615,15 +615,15 @@ actor {
                 });
         };
         
-        let a = await add_record(mymint);
+        let a = add_record(mymint);
 
         // let aa: Nat = switch(a) {
         //     case (#Ok(pp)) pp;
         //     case (_) 0;
         // };
-        let c = await add_record(mymint);
+        let c = add_record(mymint);
         //Debug.print("History size before:"#Nat.toText(a));
-        let b = await add_record(myin);
+        let b = add_record(myin);
         //Debug.print("History size before:"#Nat.toText(b));
 
 
@@ -654,27 +654,27 @@ actor {
         reducers = [balancesIlde.reducer];//[dedupIlde.reducer, balancesIlde.reducer];      //<-----REDO
     });
 
-    public shared(msg) func add_record(x: T.ActionIlde): async Nat {
+    public shared(msg) func add_record(x: T.ActionIlde): () {
         //return icrc3().add_record<system>(x, null);
 
         //add block to ledger
-        let ret = await chain_ilde.dispatch(x);  //handle error
+        let ret = chain_ilde.dispatch(x);  //handle error
         switch (ret) {
             case (#Ok(p)) {
                 Debug.print("Ok");
-                return p;
+                //return p;
             };
             case (#Err(p)) {
                 //<---I MHERE WHY????  Reducer BalcerIlde is giving error
                 Debug.print("Error");
-                return 0;
+                //return 0;
             }
         }; 
     };
 
     // ICRC-1
     public shared ({ caller }) func icrc1_transfer(req : ICRC.TransferArg) : async ICRC.Result {
-        let ret = await transfer(caller, req);
+        let ret = transfer(caller, req);
         ret;
     };
 
@@ -699,7 +699,7 @@ actor {
 
     // --
   
-    private func transfer(caller:Principal, req:ICRC.TransferArg) : async ICRC.Result {
+    private func transfer(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
         let from : ICRC.Account = {
             owner = caller;
             subaccount = req.from_subaccount;
@@ -782,7 +782,7 @@ actor {
             payload = payload;
         };
 
-        let ret = await chain_ilde.dispatch(action);
+        let ret = chain_ilde.dispatch(action);
         return ret;
         // switch (ret) {
         //     case (#Ok(p)) {

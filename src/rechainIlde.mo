@@ -20,6 +20,7 @@ import Vec "mo:vector";
 import RepIndy "mo:rep-indy-hash";
 import Text "mo:base/Text";
 import Timer "mo:base/Timer";
+import archiveIlde "./archiveIlde";
 
 module {
     // public type BlockIlde = { 
@@ -87,7 +88,7 @@ module {
 
         let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
 
-        public func dispatch( action: A ) : async ({#Ok : BlockId;  #Err: T.ActionError }) {
+        public func dispatch( action: A ) : ({#Ok : BlockId;  #Err: T.ActionError }) {
             //ILDE: The way I serve the reducers does not change
             Debug.print(Nat.toText(10));
             // Execute reducers
@@ -153,7 +154,7 @@ module {
                 switch(cleaningTimer){
                     case(null){ //only need one active timer
             //         debug if(debug_channel.add_record) D.print("setting clean up timer");
-                        cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);  //<--- IM HERE
+                        cleaningTimer := ?Timer.setTimer(#seconds(10), check_clean_up);  //<--- IM HERE
                     };
                     case(_){};
                 };
@@ -169,14 +170,15 @@ module {
         };
         
 
-        public func check_clean_up<system>() : async (){
+        public func check_clean_up() : async (){
 
         // ILDE: preparation work: create an archive canister (start copying from ICDev)
 
         //clear the timer
-            state.cleaningTimer := null;
-            debug if(debug_channel.clean_up) D.print("Checking clean up" # debug_show(stats()));
-
+            cleaningTimer := null;
+            Debug.print("Checking clean up Ilde");
+            ();
+        };
         //ensure only one cleaning job is running
     
     //         if(state.bCleaning) return; //only one cleaning at a time;
