@@ -86,8 +86,45 @@ module {
         };
 
         //ILDE: state variable (in the future I will join them all in a single variable "state"
-        var cleaningTimer:?Timer.TimerId = null;  //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
-        var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
+        let state = {
+            var lastIndex = 0;
+            var firstIndex = 0;
+            var ledger : Vec.Vector<Transaction> = Vec.new<Transaction>();
+            var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
+            var cleaningTimer = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
+            var latest_hash = null;
+            supportedBlocks =  Vec.new<v0_1_0.BlockType>();
+            archives = Map.new<Principal, v0_1_0.TransactionRange>();
+            ledgerCanister = caller;
+            constants = {
+                archiveProperties = switch(args){
+                    case(_){
+                        {
+                        var maxActiveRecords = 2000;
+                        var settleToRecords = 1000;
+                        var maxRecordsInArchiveInstance = 10_000_000;
+                        var maxArchivePages  = 62500;
+                        var archiveIndexType = #Stable;
+                        var maxRecordsToArchive = 10_000;
+                        var archiveCycles = 2_000_000_000_000; //two trillion
+                        var archiveControllers = null;
+                        };
+                    };   // ILDE: TBD (requires adding "args" parameter to ildeChain constructor interface)
+                    // case(?val){
+                    //     {
+                    //     var maxActiveRecords = val.maxActiveRecords;
+                    //     var settleToRecords = val.settleToRecords;
+                    //     var maxRecordsInArchiveInstance = val.maxRecordsInArchiveInstance;
+                    //     var maxArchivePages  = val.maxArchivePages;
+                    //     var archiveIndexType = val.archiveIndexType;
+                    //     var maxRecordsToArchive = val.maxRecordsToArchive;
+                    //     var archiveCycles = val.archiveCycles;
+                    //     var archiveControllers = val.archiveControllers;
+                    //     };
+                    // };
+                };
+            };
+        };
 
         let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
 
@@ -190,96 +227,97 @@ module {
         //don't clean if not necessary
     
             //if(Vec.size(state.ledger) < state.constants.archiveProperties.maxActiveRecords) return;
-            if(history.len() < constants.maxActiveRecords) return;
+            if(history.len() < state.constants.maxActiveRecords) return;
 
         // ILDE: let know that we are creating an archive canister so noone else try at the same time
 
             state.bCleaning := true;
+        
+
+        //cleaning: <----------------IMHERE: REPASSAR AMB ATENCIO AQUESTA PART!!!!!!!!!!!
+        //                           DANGER: NOW I HAVE "state"
+            D.print("Now we are cleaning");
+
+            let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){
+                //no archive exists - create a new canister
+                //add cycles;
+                debug if(debug_channel.clean_up) D.print("Creating a canister");
+
+                if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
+                ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+                } else{
+                //warning ledger will eventually overload
+                debug if(debug_channel.clean_up) D.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
+                    state.bCleaning :=false;
+                return;
+                };
+
+                //commits state and creates archive
+                let newArchive = await Archive.Archive({
+                maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
+                indexType = #Stable;
+                maxPages = state.constants.archiveProperties.maxArchivePages;
+                firstIndex = 0;
+                });
+                //set archive controllers calls async
+                ignore update_controllers(Principal.fromActor(newArchive));
+
+                let newItem = {
+                start = 0;
+                length = 0;
+                };
+
+                debug if(debug_channel.clean_up) D.print("Have an archive");
+
+                ignore Map.put<Principal, TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
+
+                ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
+            } else{
+                //check that the last one isn't full;
+                debug if(debug_channel.clean_up) D.print("Checking old archive");
+                let lastArchive = switch(Map.peek(state.archives)){
+                case(null) {D.trap("unreachable")}; //unreachable;
+                case(?val) val;
+                };
+                
+                if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){
+                //this one is full, create a new archive
+                debug if(debug_channel.clean_up) D.print("Need a new canister");
+                if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
+                    ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+                } else{
+                    //warning ledger will eventually overload
+                    state.bCleaning :=false;
+                    return;
+                };
+
+                let newArchive = await Archive.Archive({
+                    maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
+                    indexType = #Stable;
+                    maxPages = state.constants.archiveProperties.maxArchivePages;
+                    firstIndex = lastArchive.1.start + lastArchive.1.length;
+                });
+
+                debug if(debug_channel.clean_up) D.print("Have a multi archive");
+                let newItem = {
+                    start = state.firstIndex;
+                    length = 0;
+                };
+                ignore Map.put(state.archives, Map.phash, Principal.fromActor(newArchive), newItem);
+                ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
+                } else {
+                debug if(debug_channel.clean_up) D.print("just giving stats");
+                
+                let capacity = if(state.constants.archiveProperties.maxRecordsInArchiveInstance >= lastArchive.1.length){
+                    Nat.sub(state.constants.archiveProperties.maxRecordsInArchiveInstance,  lastArchive.1.length);
+                } else {
+                    D.trap("max archive lenghth must be larger than the last archive length");
+                };
+
+                (lastArchive, capacity);
+                };
+            };
         };
-
-        //cleaning
-    //         debug if(debug_channel.clean_up) D.print("Now we are cleaning");
-
-    //         let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){
-    //             //no archive exists - create a new canister
-    //             //add cycles;
-    //             debug if(debug_channel.clean_up) D.print("Creating a canister");
-
-    //             if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-    //             ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
-    //             } else{
-    //             //warning ledger will eventually overload
-    //             debug if(debug_channel.clean_up) D.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
-    //                 state.bCleaning :=false;
-    //             return;
-    //             };
-
-    //             //commits state and creates archive
-    //             let newArchive = await Archive.Archive({
-    //             maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-    //             indexType = #Stable;
-    //             maxPages = state.constants.archiveProperties.maxArchivePages;
-    //             firstIndex = 0;
-    //             });
-    //             //set archive controllers calls async
-    //             ignore update_controllers(Principal.fromActor(newArchive));
-
-    //             let newItem = {
-    //             start = 0;
-    //             length = 0;
-    //             };
-
-    //             debug if(debug_channel.clean_up) D.print("Have an archive");
-
-    //             ignore Map.put<Principal, TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
-
-    //             ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
-    //         } else{
-    //             //check that the last one isn't full;
-    //             debug if(debug_channel.clean_up) D.print("Checking old archive");
-    //             let lastArchive = switch(Map.peek(state.archives)){
-    //             case(null) {D.trap("unreachable")}; //unreachable;
-    //             case(?val) val;
-    //             };
-                
-    //             if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){
-    //             //this one is full, create a new archive
-    //             debug if(debug_channel.clean_up) D.print("Need a new canister");
-    //             if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-    //                 ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
-    //             } else{
-    //                 //warning ledger will eventually overload
-    //                 state.bCleaning :=false;
-    //                 return;
-    //             };
-
-    //             let newArchive = await Archive.Archive({
-    //                 maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-    //                 indexType = #Stable;
-    //                 maxPages = state.constants.archiveProperties.maxArchivePages;
-    //                 firstIndex = lastArchive.1.start + lastArchive.1.length;
-    //             });
-
-    //             debug if(debug_channel.clean_up) D.print("Have a multi archive");
-    //             let newItem = {
-    //                 start = state.firstIndex;
-    //                 length = 0;
-    //             };
-    //             ignore Map.put(state.archives, Map.phash, Principal.fromActor(newArchive), newItem);
-    //             ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
-    //             } else {
-    //             debug if(debug_channel.clean_up) D.print("just giving stats");
-                
-    //             let capacity = if(state.constants.archiveProperties.maxRecordsInArchiveInstance >= lastArchive.1.length){
-    //                 Nat.sub(state.constants.archiveProperties.maxRecordsInArchiveInstance,  lastArchive.1.length);
-    //             } else {
-    //                 D.trap("max archive lenghth must be larger than the last archive length");
-    //             };
-
-    //             (lastArchive, capacity);
-    //             };
-    //         };
-         
          // ILDE: here the archive is created but it is still empty
 
          // ILDE: ie creates an archive instance accessible from this function
