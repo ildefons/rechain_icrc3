@@ -93,5 +93,17 @@ module {
         firstIndex : Nat;
     };
 
+    public type AddTransactionsResponse = {
+        #Full : SW.Stats;
+        #ok : SW.Stats;
+        #err: Text;
+    };
+
+    /// The type to request a range of transactions from the ledger canister
+    public type TransactionRange = {
+        start : Nat;
+        length : Nat;
+    };
+
 
 }
