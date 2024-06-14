@@ -69,6 +69,7 @@ module {
         block_type : Text;
         url : Text;
     };
+    public type Transaction = T.IldeBlock;
     /// ILDE: copied from ICDev ICRC3  Types implementation 
     /// The Interface for the Archive canister
     public type ArchiveInterface = actor {
@@ -262,7 +263,6 @@ module {
 
             state.bCleaning := true;
         
-
         //cleaning
 
             D.print("Now we are cleaning");
@@ -356,8 +356,10 @@ module {
          
          // ILDE: make sure that the amount of records to be archived is at least > than a constant "settleToRecords"
 
-        var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
-            Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
+        // var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
+        //     Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
+        var archive_amount = if(history.len() > state.constants.archiveProperties.settleToRecords){
+            Nat.sub(history.len(), state.constants.archiveProperties.settleToRecords)
         } else {
             D.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
         };
@@ -381,18 +383,27 @@ module {
 
         D.print("amount to archive updated to " # debug_show(archive_amount));
 
-         // <--------ILDE: "Transaction" is the old "Value" type which now is "BlockIlde" 
-         //       so, I need to create: "public type Transaction = T.IldeBlock;" and import ".\types" of rechainIlde 
+         // ILDE: "Transaction" is the old "Value" type which now is "BlockIlde" 
+         //       so, I had to create: "public type Transaction = T.IldeBlock;" and import ".\types" of rechainIlde 
 
          // ILDE: moving trx from ledger to new archive canister
 
-    //         let toArchive = Vec.new<Transaction>();
-    //         label find for(thisItem in Vec.vals(state.ledger)){
-    //             Vec.add(toArchive, thisItem);
-    //             if(Vec.size(toArchive) == archive_amount) break find;
-    //         };
+        //let toArchive = Vec.new<Transaction>();
+        //label find for(thisItem in Vec.vals(state.ledger)){
+        //     Vec.add(toArchive, thisItem);
+        //     if(Vec.size(toArchive) == archive_amount) break find;
+        // };
+        let length = Nat.min(history.len(), 1000);
+        let end = history.end();
+        let start = history.start();
+        let resp_length = Nat.min(length, end - start);
+        let transactions_array = Array.tabulate<Block>(resp_length, func (i) {
+            let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
+            block;
+        }); 
+        let toArchive:Vec<Transaction> = Vec.fromArray(transactions_array);
 
-    //         debug if(debug_channel.clean_up) D.print("tArchive size " # debug_show(Vec.size(toArchive)));
+        debug if(debug_channel.clean_up) D.print("toArchive size " # debug_show(Vec.size(toArchive)));
 
          // ILDE: actually adding them
 
