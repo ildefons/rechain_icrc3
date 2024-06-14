@@ -61,8 +61,12 @@ module {
         length : Nat;
     };
     public type TransactionRange = { transactions : [T.BlockIlde] };
-
+    public type BlockType = {
+        block_type : Text;
+        url : Text;
+    };
     public class ChainIlde<A,E,B>({
+        canister: Princiapl; // ILDE: I have to add this paramter because it is used by "update_controllers"
         mem: MemIlde;
         //mem: Mem<A>;
         encodeBlock: (A) -> T.BlockIlde;   //ILDE: I changed B--->A 
@@ -93,8 +97,8 @@ module {
             var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
             var cleaningTimer = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
             var latest_hash = null;
-            supportedBlocks =  Vec.new<v0_1_0.BlockType>();
-            archives = Map.new<Principal, v0_1_0.TransactionRange>();
+            supportedBlocks =  Vec.new<BlockType>();
+            archives = Map.new<Principal, TransactionRange>();
             ledgerCanister = caller;
             constants = {
                 archiveProperties = switch(args){
@@ -119,7 +123,7 @@ module {
                     //     var archiveIndexType = val.archiveIndexType;
                     //     var maxRecordsToArchive = val.maxRecordsToArchive;
                     //     var archiveCycles = val.archiveCycles;
-                    //     var archiveControllers = val.archiveControllers;   // ILDE: this is set to control archive canisters, if this is null the canister controller becomes also the archive controller
+                    //     var archiveControllers = val.archiveControllers;   // ILDE: this is set to control archive canisters (plus the ledger canister), if this is null the canister controller becomes also the archive controller
                     //     };
                     // };
                 };
@@ -253,7 +257,7 @@ module {
                     return;
                 };
 
-                //<-----commits state and creates archive
+                //commits state and creates archive
                 let newArchive = await archiveIlde.archiveIlde({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = #Stable;
@@ -261,19 +265,20 @@ module {
                         firstIndex = 0;
                 });
                 //set archive controllers calls async
+                //ILDE: note that this method uses the costructor argument "canister" = princiapl of "ledger" canister
                 ignore update_controllers(Principal.fromActor(newArchive));
 
                 let newItem = {
-                start = 0;
-                length = 0;
+                    start = 0;
+                    length = 0;
                 };
 
-                debug if(debug_channel.clean_up) D.print("Have an archive");
+                D.print("Have an archive");
 
                 ignore Map.put<Principal, TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
 
                 ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
-            } else{
+            } else{ //<--------------
                 //check that the last one isn't full;
                 debug if(debug_channel.clean_up) D.print("Checking old archive");
                 let lastArchive = switch(Map.peek(state.archives)){
@@ -435,31 +440,35 @@ module {
         
 
         /// ILDE: This method is from ICDev ICRC3 implementation
+        /// ILDE: This method uses "canister" which is the princiapl of the main ledger actor
+        /// ILDE: so, I have to pass "canister = Principal.fromActor(this)" from "ledger" to rechainIlde 
         /// Updates the controllers for the given canister
         ///
         /// This function updates the controllers for the given canister.
         ///
         /// Arguments:
         /// - `canisterId`: The canister ID
+
+
         private func update_controllers(canisterId : Principal) : async (){ //<---HERE
             switch(state.constants.archiveProperties.archiveControllers){
                 case(?val){
-                let final_list = switch(val){
-                    case(?list){
-                    let a_set = Set.fromIter<Principal>(list.vals(), Map.phash);
-                    Set.add(a_set, Map.phash, canister);
-                    ?Set.toArray(a_set);
+                    let final_list = switch(val){
+                        case(?list){
+                            let a_set = Set.fromIter<Principal>(list.vals(), Map.phash);
+                            Set.add(a_set, Map.phash, canister);
+                            ?Set.toArray(a_set);
+                        };
+                        case(null){
+                            ?[canister];
+                        };
                     };
-                    case(null){
-                    ?[canister];
-                    };
-                };
-                ignore ic.update_settings(({canister_id = canisterId; settings = {
+                    ignore ic.update_settings(({canister_id = canisterId; settings = {
                             controllers = final_list;
                             freezing_threshold = null;
                             memory_allocation = null;
                             compute_allocation = null;
-                }}));
+                    }}));
                 };
                 case(_){};    
             };

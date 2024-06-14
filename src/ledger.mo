@@ -641,6 +641,7 @@ actor {
     // };
 
     let chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({  //ILDE: I think "T.ActionIldeWithPhash" is no lomger necessary
+        canister = Principal.fromActor(this);
         mem = chain_mem_ilde;
         encodeBlock = encodeBlock;//func(b: T.ActionIlde) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
                                                                // action.toGenericValue: I have to write it
