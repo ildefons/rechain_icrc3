@@ -69,6 +69,26 @@ module {
         block_type : Text;
         url : Text;
     };
+    /// ILDE: copied from ICDev ICRC3  Types implementation 
+    /// The Interface for the Archive canister
+    public type ArchiveInterface = actor {
+      /// Appends the given transactions to the archive.
+      /// > Only the Ledger canister is allowed to call this method
+      append_transactions : shared ([Transaction]) -> async AddTransactionsResponse;
+
+      /// Returns the total number of transactions stored in the archive
+      total_transactions : shared query () -> async Nat;
+
+      /// Returns the transaction at the given index
+      get_transaction : shared query (Nat) -> async ?Transaction;
+
+      /// Returns the transactions in the given range
+      icrc3_get_blocks : shared query (TransactionRange) -> async TransactionsResult;
+
+      /// Returns the number of bytes left in the archive before it is full
+      /// > The capacity of the archive canister is 32GB
+      remaining_capacity : shared query () -> async Nat;
+    };
     public class ChainIlde<A,E,B>({
         canister: Princiapl; // ILDE: I have to add this paramter because it is used by "update_controllers"
         mem: MemIlde;
@@ -332,17 +352,17 @@ module {
 
          // ILDE: ie creates an archive instance accessible from this function
 
-    //         let archive = actor(Principal.toText(archive_detail.0)) : MigrationTypes.Current.ArchiveInterface;
+        let archive = actor(Principal.toText(archive_detail.0)) : ArchiveInterface;
          
          // ILDE: make sure that the amount of records to be archived is at least > than a constant "settleToRecords"
 
-    //         var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
-    //             Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
-    //         } else {
-    //             D.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
-    //         };
+        var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
+            Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
+        } else {
+            D.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
+        };
 
-    //         debug if(debug_channel.clean_up) D.print("amount to archive is " # debug_show(archive_amount));
+        D.print("amount to archive is " # debug_show(archive_amount));
 
          // ILDE: "bRbRecallAtEnd" is used to let know this function at the end, it still has work to do 
          //       we could not archive all ledger records. so we need to update "archive_amount"
