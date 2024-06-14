@@ -69,7 +69,7 @@ module {
         block_type : Text;
         url : Text;
     };
-    public type Transaction = T.IldeBlock;
+    public type Transaction = T.BlockIlde;
     /// ILDE: copied from ICDev ICRC3  Types implementation 
     /// The Interface for the Archive canister
     public type ArchiveInterface = actor {
@@ -273,7 +273,7 @@ module {
                 D.print("Creating a canister");
 
                 if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                    ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+                    ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
                 } else{
                     //warning ledger will eventually overload
                     D.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
@@ -314,7 +314,7 @@ module {
                     D.print("Need a new canister");
                     
                     if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                        ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+                        ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
                     } else{
                         //warning ledger will eventually overload
                         state.bCleaning :=false;
