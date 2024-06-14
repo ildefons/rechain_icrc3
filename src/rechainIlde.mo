@@ -367,21 +367,21 @@ module {
          // ILDE: "bRbRecallAtEnd" is used to let know this function at the end, it still has work to do 
          //       we could not archive all ledger records. so we need to update "archive_amount"
 
-    //         var bRecallAtEnd = false;
+        var bRecallAtEnd = false;
 
-    //         if(archive_amount > available_capacity){
-    //             bRecallAtEnd := true;
-    //             archive_amount := available_capacity;
-    //         };
+        if(archive_amount > available_capacity){
+            bRecallAtEnd := true;
+            archive_amount := available_capacity;
+        };
 
-    //         if(archive_amount > state.constants.archiveProperties.maxRecordsToArchive){
-    //             bRecallAtEnd := true;
-    //             archive_amount := state.constants.archiveProperties.maxRecordsToArchive;
-    //         };
+        if(archive_amount > state.constants.archiveProperties.maxRecordsToArchive){
+            bRecallAtEnd := true;
+            archive_amount := state.constants.archiveProperties.maxRecordsToArchive;
+        };
 
-    //         debug if(debug_channel.clean_up) D.print("amount to archive updated to " # debug_show(archive_amount));
+        D.print("amount to archive updated to " # debug_show(archive_amount));
 
-         // ILDE: "Transaction" is the old "Value" type which now is "BlockIlde" 
+         // <--------ILDE: "Transaction" is the old "Value" type which now is "BlockIlde" 
          //       so, I need to create: "public type Transaction = T.IldeBlock;" and import ".\types" of rechainIlde 
 
          // ILDE: moving trx from ledger to new archive canister
