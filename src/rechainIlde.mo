@@ -60,7 +60,11 @@ module {
         start : Nat;
         length : Nat;
     };
-    public type TransactionRange = { transactions : [T.BlockIlde] };
+    //public type TransactionRange = { transactions : [T.BlockIlde] };
+    public type TransactionRange = {
+      start : Nat;
+      length : Nat;
+    };
     public type BlockType = {
         block_type : Text;
         url : Text;
@@ -243,7 +247,7 @@ module {
 
             D.print("Now we are cleaning");
 
-            let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){
+            let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){ //ILDE: if first archive canister
                 //no archive exists - create a new canister
                 //add cycles;
                 D.print("Creating a canister");
@@ -278,53 +282,53 @@ module {
                 ignore Map.put<Principal, TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
 
                 ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
-            } else{ //<--------------
+            } else{ 
                 //check that the last one isn't full;
-                debug if(debug_channel.clean_up) D.print("Checking old archive");
-                let lastArchive = switch(Map.peek(state.archives)){
-                case(null) {D.trap("unreachable")}; //unreachable;
-                case(?val) val;
+                D.print("Checking old archive");
+                let lastArchive = switch(Map.peek(state.archives)){    //ILDE: "If the Map is not empty, returns the last (key, value) pair in the Map. Otherwise, returns null.""
+                    case(null) {D.trap("state.archives unreachable")}; //unreachable;
+                    case(?val) val;
                 };
                 
-                if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){
-                //this one is full, create a new archive
-                debug if(debug_channel.clean_up) D.print("Need a new canister");
-                if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                    ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
-                } else{
-                    //warning ledger will eventually overload
-                    state.bCleaning :=false;
-                    return;
-                };
+                if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
+                    D.print("Need a new canister");
+                    
+                    if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
+                        ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+                    } else{
+                        //warning ledger will eventually overload
+                        state.bCleaning :=false;
+                        return;
+                    };
 
-                let newArchive = await Archive.Archive({
-                    maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-                    indexType = #Stable;
-                    maxPages = state.constants.archiveProperties.maxArchivePages;
-                    firstIndex = lastArchive.1.start + lastArchive.1.length;
-                });
+                    let newArchive = await Archive.Archive({
+                        maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
+                        indexType = #Stable;
+                        maxPages = state.constants.archiveProperties.maxArchivePages;
+                        firstIndex = lastArchive.1.start + lastArchive.1.length;
+                    });
+                    //ILDE state.firstIndex is update after this if/else archive creation
+                    D.print("Have a multi archive");
+                    let newItem = {
+                        start = state.firstIndex;
+                        length = 0;
+                    };
+                    ignore Map.put(state.archives, Map.phash, Principal.fromActor(newArchive), newItem);
+                    ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
+                } else { //ILDE: this is the case we reuse a previously/last create archive because there is free space
+                    D.print("just giving stats");
+                    
+                    let capacity = if(state.constants.archiveProperties.maxRecordsInArchiveInstance >= lastArchive.1.length){
+                        Nat.sub(state.constants.archiveProperties.maxRecordsInArchiveInstance,  lastArchive.1.length);
+                    } else {
+                        D.trap("max archive lenghth must be larger than the last archive length");
+                    };
 
-                debug if(debug_channel.clean_up) D.print("Have a multi archive");
-                let newItem = {
-                    start = state.firstIndex;
-                    length = 0;
-                };
-                ignore Map.put(state.archives, Map.phash, Principal.fromActor(newArchive), newItem);
-                ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
-                } else {
-                debug if(debug_channel.clean_up) D.print("just giving stats");
-                
-                let capacity = if(state.constants.archiveProperties.maxRecordsInArchiveInstance >= lastArchive.1.length){
-                    Nat.sub(state.constants.archiveProperties.maxRecordsInArchiveInstance,  lastArchive.1.length);
-                } else {
-                    D.trap("max archive lenghth must be larger than the last archive length");
-                };
-
-                (lastArchive, capacity);
+                    (lastArchive, capacity);
                 };
             };
         };
-         // ILDE: here the archive is created but it is still empty
+         // ILDE: here the archive is created but it is still empty <------------
 
          // ILDE: ie creates an archive instance accessible from this function
 
