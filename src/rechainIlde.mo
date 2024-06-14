@@ -75,7 +75,7 @@ module {
 
         //ILDE: following vars and cts are mostly taken frm ICDev implementation
         let constants = {
-            var maxActiveRecords = 2;//000;
+            var maxActiveRecords = 2000;
             var settleToRecords = 1000;
             var maxRecordsInArchiveInstance = 10_000_000;
             var maxArchivePages  = 62500;
@@ -119,7 +119,7 @@ module {
                     //     var archiveIndexType = val.archiveIndexType;
                     //     var maxRecordsToArchive = val.maxRecordsToArchive;
                     //     var archiveCycles = val.archiveCycles;
-                    //     var archiveControllers = val.archiveControllers;
+                    //     var archiveControllers = val.archiveControllers;   // ILDE: this is set to control archive canisters, if this is null the canister controller becomes also the archive controller
                     //     };
                     // };
                 };
@@ -209,6 +209,7 @@ module {
             #Ok(blockId);
         };
         
+        /// ILDE: This method is from ICDev ICRC3 implementation
 
         public func check_clean_up() : async (){
 
@@ -234,30 +235,30 @@ module {
             state.bCleaning := true;
         
 
-        //cleaning: <----------------IMHERE: REPASSAR AMB ATENCIO AQUESTA PART!!!!!!!!!!!
-        //                           DANGER: NOW I HAVE "state"
+        //cleaning
+
             D.print("Now we are cleaning");
 
             let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){
                 //no archive exists - create a new canister
                 //add cycles;
-                debug if(debug_channel.clean_up) D.print("Creating a canister");
+                D.print("Creating a canister");
 
                 if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+                    ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
                 } else{
-                //warning ledger will eventually overload
-                debug if(debug_channel.clean_up) D.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
+                    //warning ledger will eventually overload
+                    D.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
                     state.bCleaning :=false;
-                return;
+                    return;
                 };
 
-                //commits state and creates archive
-                let newArchive = await Archive.Archive({
-                maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-                indexType = #Stable;
-                maxPages = state.constants.archiveProperties.maxArchivePages;
-                firstIndex = 0;
+                //<-----commits state and creates archive
+                let newArchive = await archiveIlde.archiveIlde({
+                        maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
+                        indexType = #Stable;
+                        maxPages = state.constants.archiveProperties.maxArchivePages;
+                        firstIndex = 0;
                 });
                 //set archive controllers calls async
                 ignore update_controllers(Principal.fromActor(newArchive));
@@ -432,6 +433,40 @@ module {
             
     //     };
         
+
+        /// ILDE: This method is from ICDev ICRC3 implementation
+        /// Updates the controllers for the given canister
+        ///
+        /// This function updates the controllers for the given canister.
+        ///
+        /// Arguments:
+        /// - `canisterId`: The canister ID
+        private func update_controllers(canisterId : Principal) : async (){ //<---HERE
+            switch(state.constants.archiveProperties.archiveControllers){
+                case(?val){
+                let final_list = switch(val){
+                    case(?list){
+                    let a_set = Set.fromIter<Principal>(list.vals(), Map.phash);
+                    Set.add(a_set, Map.phash, canister);
+                    ?Set.toArray(a_set);
+                    };
+                    case(null){
+                    ?[canister];
+                    };
+                };
+                ignore ic.update_settings(({canister_id = canisterId; settings = {
+                            controllers = final_list;
+                            freezing_threshold = null;
+                            memory_allocation = null;
+                            compute_allocation = null;
+                }}));
+                };
+                case(_){};    
+            };
+
+            return;
+        };
+
         // Handle transaction retrieval and archiving
         public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
             let length = Nat.min(req.length, 1000);
