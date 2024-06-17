@@ -109,7 +109,7 @@ module {
 
         //ILDE: following vars and cts are mostly taken frm ICDev implementation
         let constants = {
-            var maxActiveRecords = 2000;
+            var maxActiveRecords = 2;//000;
             var settleToRecords = 1000;
             var maxRecordsInArchiveInstance = 10_000_000;
             var maxArchivePages  = 62500;
@@ -136,7 +136,7 @@ module {
                 archiveProperties = switch(args){
                     case(_){
                         {
-                        var maxActiveRecords = 2000;
+                        var maxActiveRecords = 2;//000;
                         var settleToRecords = 1000;
                         var maxRecordsInArchiveInstance = 10_000_000;
                         var maxArchivePages  = 62500;
@@ -233,13 +233,14 @@ module {
             //  2) If ne cessary, create timer with a period of 0 seconds to create it
             // <---HOW TO KNOW IF NECESSARY???
             // if(Vec.size(state.ledger) > state.constants.archiveProperties.maxActiveRecords){
+            Debug.print(Nat.toText(601));
             if(history.len() > constants.maxActiveRecords){
-                switch(state.cleaningTimer){
+                switch(state.cleaningTimer){ 
                     case(null){ //only need one active timer
-            //         debug if(debug_channel.add_record) D.print("setting clean up timer");
+                        Debug.print(Nat.toText(602));
                         state.cleaningTimer := ?Timer.setTimer(#seconds(10), check_clean_up);  //<--- IM HERE
                     };
-                    case(_){};
+                    case(_){Debug.print(Nat.toText(603));};
                 };
             };
 

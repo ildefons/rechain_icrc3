@@ -576,6 +576,10 @@ actor Self {
     };
 
     public shared(msg) func test1(): async T.BlockIlde {
+
+        // ILDE: I need to set this manually 
+        chain_ilde.set_ledger_canister(Principal.fromActor(Self));
+
         let myin: T.ActionIlde = {
             ts = 3;
             created_at_time = null;
@@ -590,6 +594,9 @@ actor Self {
         encodeBlock(myin);        
     };
     public func test2(): async (Nat) {
+
+        // ILDE: I need to set this manually 
+        chain_ilde.set_ledger_canister(Principal.fromActor(Self));
 
         let mymint: T.ActionIlde = {
             ts = 3;
