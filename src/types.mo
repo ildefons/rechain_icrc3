@@ -105,5 +105,22 @@ module {
         length : Nat;
     };
 
+    public type Transaction = BlockIlde;
+
+    public type TransactionsResult = {
+      blocks: [Transaction];
+    };
+
+    public type InitArgs = {
+      maxActiveRecords : Nat;
+      settleToRecords : Nat;
+      maxRecordsInArchiveInstance : Nat;
+      maxArchivePages : Nat;
+      archiveIndexType : SW.IndexType;
+      maxRecordsToArchive : Nat;
+      archiveCycles : Nat;
+      archiveControllers : ??[Principal];
+      supportedBlocks : [BlockIlde];
+    };
 
 }

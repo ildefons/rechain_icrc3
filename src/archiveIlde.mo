@@ -45,27 +45,27 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
 
   public shared ({ caller }) func append_transactions(txs : [Transaction]) : async AddTransactionsResponse {
 
-      D.print("adding transactions to archive" # debug_show(txs));
+    D.print("adding transactions to archive" # debug_show(txs));
 
-      if (caller != ledger_canister_id) {
-          return #err("Unauthorized Access: Only the ledger canister can access this archive canister");
-      };
-
-      label addrecs for(thisItem in txs.vals()){
-        let stats = sw.stats();
-        if(stats.itemCount >= args.maxRecords){
-          D.print("braking add recs");//ILDE: if(debug_channel.append)D.print("braking add recs");
-          break addrecs;
-        };
-        ignore sw.write(to_candid(thisItem));
-      };
-
-      let final_stats = sw.stats();
-      if(final_stats.itemCount >= args.maxRecords){
-        return #Full(final_stats);
-      };
-      #ok(final_stats);
+    if (caller != ledger_canister_id) {
+        return #err("Unauthorized Access: Only the ledger canister can access this archive canister");
     };
+
+    label addrecs for(thisItem in txs.vals()){
+      let stats = sw.stats();
+      if(stats.itemCount >= args.maxRecords){
+        D.print("braking add recs");//ILDE: if(debug_channel.append)D.print("braking add recs");
+        break addrecs;
+      };
+      ignore sw.write(to_candid(thisItem));
+    };
+
+    let final_stats = sw.stats();
+    if(final_stats.itemCount >= args.maxRecords){
+      return #Full(final_stats);
+    };
+    #ok(final_stats);
+  };
 
     // func total_txs() : Nat {
     //     sw.stats().itemCount;

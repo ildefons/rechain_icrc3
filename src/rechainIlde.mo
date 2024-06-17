@@ -70,6 +70,9 @@ module {
         url : Text;
     };
     public type Transaction = T.BlockIlde;
+    public type AddTransactionsResponse = T.AddTransactionsResponse;
+    public type TransactionsResult = T.TransactionsResult;
+
     /// ILDE: copied from ICDev ICRC3  Types implementation 
     /// The Interface for the Archive canister
     public type ArchiveInterface = actor {
@@ -91,7 +94,7 @@ module {
       remaining_capacity : shared query () -> async Nat;
     };
     public class ChainIlde<A,E,B>({
-        canister: Princiapl; // ILDE: I have to add this paramter because it is used by "update_controllers"
+        canister: Principal; // ILDE: I have to add this paramter because it is used by "update_controllers"
         mem: MemIlde;
         //mem: Mem<A>;
         encodeBlock: (A) -> T.BlockIlde;   //ILDE: I changed B--->A 
@@ -100,6 +103,7 @@ module {
         //hashBlock: (Block) -> Blob;
         hashBlock: (T.BlockIlde) -> Blob;
         reducers : [ActionReducer<A,T.ActionError>];
+        args: T.InitArgs;
         }) {
 
         //ILDE: following vars and cts are mostly taken frm ICDev implementation
@@ -124,7 +128,7 @@ module {
             var latest_hash = null;
             supportedBlocks =  Vec.new<BlockType>();
             archives = Map.new<Principal, TransactionRange>();
-            ledgerCanister = caller;
+            //ledgerCanister = caller;
             constants = {
                 archiveProperties = switch(args){
                     case(_){
@@ -220,10 +224,10 @@ module {
             // <---HOW TO KNOW IF NECESSARY???
             // if(Vec.size(state.ledger) > state.constants.archiveProperties.maxActiveRecords){
             if(history.len() > constants.maxActiveRecords){
-                switch(cleaningTimer){
+                switch(state.cleaningTimer){
                     case(null){ //only need one active timer
             //         debug if(debug_channel.add_record) D.print("setting clean up timer");
-                        cleaningTimer := ?Timer.setTimer(#seconds(10), check_clean_up);  //<--- IM HERE
+                        state.cleaningTimer := ?Timer.setTimer(#seconds(10), check_clean_up);  //<--- IM HERE
                     };
                     case(_){};
                 };
@@ -306,7 +310,7 @@ module {
                 //check that the last one isn't full;
                 D.print("Checking old archive");
                 let lastArchive = switch(Map.peek(state.archives)){    //ILDE: "If the Map is not empty, returns the last (key, value) pair in the Map. Otherwise, returns null.""
-                    case(null) {D.trap("state.archives unreachable")}; //unreachable;
+                    case(null) {Debug.trap("state.archives unreachable")}; //unreachable;
                     case(?val) val;
                 };
                 
@@ -361,7 +365,7 @@ module {
         var archive_amount = if(history.len() > state.constants.archiveProperties.settleToRecords){
             Nat.sub(history.len(), state.constants.archiveProperties.settleToRecords)
         } else {
-            D.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
+            Debug.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
         };
 
         D.print("amount to archive is " # debug_show(archive_amount));
@@ -397,12 +401,16 @@ module {
         let end = history.end();
         let start = history.start();
         let resp_length = Nat.min(length, end - start);
-        let transactions_array = Array.tabulate<Block>(resp_length, func (i) {
+        let toArchive = Vec.new<Transaction>();
+        let transactions_array = Array.tabulate<T.BlockIlde>(resp_length, func (i) {
             let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
             block;
         }); 
-        let toArchive:Vec<Transaction> = Vec.fromArray(transactions_array);
-
+        label find for(thisItem in Array.vals(transactions_array)){
+             Vec.add(toArchive, thisItem);
+             if(Vec.size(toArchive) == archive_amount) break find;
+        };
+        
         debug if(debug_channel.clean_up) D.print("toArchive size " # debug_show(Vec.size(toArchive)));
 
          // ILDE: actually adding them
