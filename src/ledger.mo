@@ -116,7 +116,7 @@ import Timer "mo:base/Timer";
 //     };
 // };
 
-actor {
+actor Self {
 
     // -- Ledger configuration
     let config : T.Config = {
@@ -639,27 +639,34 @@ actor {
     //     Debug.print("Cleanins up");
         
     // };
+    var chain_ilde: ?rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash> = null;
 
-    let chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({  //ILDE: I think "T.ActionIldeWithPhash" is no lomger necessary
-        canister = Principal.fromActor(this);
-        mem = chain_mem_ilde;
-        encodeBlock = encodeBlock;//func(b: T.ActionIlde) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
-                                                               // action.toGenericValue: I have to write it
-                                                               // it converts the action to generic value!!!
-                                                               // it converts to the action type to generic "value" type
-                                                               // "to_candid" is different implementation in different languages
-                                                               // instead  
-                                                               // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
-        addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
-        hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
-        reducers = [balancesIlde.reducer];//[dedupIlde.reducer, balancesIlde.reducer];      //<-----REDO
-    });
+    public shared(msg) func createRechain(): () {
+        chain_ilde := ?rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({ 
+            args = null;
+            mem = chain_mem_ilde;
+            encodeBlock = encodeBlock;//func(b: T.ActionIlde) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
+                                                                // action.toGenericValue: I have to write it
+                                                                // it converts the action to generic value!!!
+                                                                // it converts to the action type to generic "value" type
+                                                                // "to_candid" is different implementation in different languages
+                                                                // instead  
+                                                                // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
+            addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
+            hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
+            reducers = [balancesIlde.reducer];//[dedupIlde.reducer, balancesIlde.reducer];      //<-----REDO
+        });
+    };
+
+    public shared(msg) func set_ledger_canister(): () {
+        chain_ilde.set_ledger_canister(Self);
+    };
 
     public shared(msg) func add_record(x: T.ActionIlde): () {
         //return icrc3().add_record<system>(x, null);
 
-        //add block to ledger
         let ret = chain_ilde.dispatch(x);  //handle error
+        //add block to ledger
         switch (ret) {
             case (#Ok(p)) {
                 Debug.print("Ok");

@@ -21,6 +21,8 @@ import RepIndy "mo:rep-indy-hash";
 import Text "mo:base/Text";
 import Timer "mo:base/Timer";
 import archiveIlde "./archiveIlde";
+import ExperimentalCycles "mo:base/ExperimentalCycles";
+import Set "mo:map9/Set";
 
 module {
     // public type BlockIlde = { 
@@ -94,7 +96,6 @@ module {
       remaining_capacity : shared query () -> async Nat;
     };
     public class ChainIlde<A,E,B>({
-        canister: Principal; // ILDE: I have to add this paramter because it is used by "update_controllers"
         mem: MemIlde;
         //mem: Mem<A>;
         encodeBlock: (A) -> T.BlockIlde;   //ILDE: I changed B--->A 
@@ -103,7 +104,7 @@ module {
         //hashBlock: (Block) -> Blob;
         hashBlock: (T.BlockIlde) -> Blob;
         reducers : [ActionReducer<A,T.ActionError>];
-        args: T.InitArgs;
+        args: ?T.InitArgs;
         }) {
 
         //ILDE: following vars and cts are mostly taken frm ICDev implementation
@@ -120,11 +121,13 @@ module {
 
         //ILDE: state variable (in the future I will join them all in a single variable "state"
         let state = {
+            var canister: ?Principal = null; // ILDE: this is non-valid caniter controller until I set it up externally afater initialization 
+                                              // ILDE: I have to add this paramter because it is used by "update_controllers"
             var lastIndex = 0;
             var firstIndex = 0;
             var ledger : Vec.Vector<Transaction> = Vec.new<Transaction>();
             var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
-            var cleaningTimer = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
+            var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
             var latest_hash = null;
             supportedBlocks =  Vec.new<BlockType>();
             archives = Map.new<Principal, TransactionRange>();
@@ -159,7 +162,14 @@ module {
             };
         };
 
+        /// The IC actor used for updating archive controllers
+        private let ic : T.IC = actor "aaaaa-aa";
+
         let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
+
+        public func setset_ledger_canister( canister: Principal ) : () {
+            state.canister := ?canister;
+        };
 
         public func dispatch( action: A ) : ({#Ok : BlockId;  #Err: T.ActionError }) {
             //ILDE: The way I serve the reducers does not change
@@ -249,19 +259,19 @@ module {
         // ILDE: preparation work: create an archive canister (start copying from ICDev)
 
         //clear the timer
-            cleaningTimer := null;
+            state.cleaningTimer := null;
             Debug.print("Checking clean up Ilde");
             
         
         //ensure only one cleaning job is running
     
-            if(bCleaning) return; //only one cleaning at a time;
-            D.print("Not currently Cleaning");
+            if(state.bCleaning) return; //only one cleaning at a time;
+            Debug.print("Not currently Cleaning");
         
         //don't clean if not necessary
     
             //if(Vec.size(state.ledger) < state.constants.archiveProperties.maxActiveRecords) return;
-            if(history.len() < state.constants.maxActiveRecords) return;
+            if(history.len() < state.constants.archiveProperties.maxActiveRecords) return;
 
         // ILDE: let know that we are creating an archive canister so noone else try at the same time
 
@@ -269,18 +279,18 @@ module {
         
         //cleaning
 
-            D.print("Now we are cleaning");
+            Debug.print("Now we are cleaning");
 
             let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){ //ILDE: if first archive canister
                 //no archive exists - create a new canister
                 //add cycles;
-                D.print("Creating a canister");
+                Debug.print("Creating a canister");
 
                 if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
                     ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
                 } else{
                     //warning ledger will eventually overload
-                    D.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
+                    Debug.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
                     state.bCleaning :=false;
                     return;
                 };
@@ -301,21 +311,21 @@ module {
                     length = 0;
                 };
 
-                D.print("Have an archive");
+                Debug.print("Have an archive");
 
                 ignore Map.put<Principal, TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
 
                 ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
             } else{ 
                 //check that the last one isn't full;
-                D.print("Checking old archive");
+                Debug.print("Checking old archive");
                 let lastArchive = switch(Map.peek(state.archives)){    //ILDE: "If the Map is not empty, returns the last (key, value) pair in the Map. Otherwise, returns null.""
                     case(null) {Debug.trap("state.archives unreachable")}; //unreachable;
                     case(?val) val;
                 };
                 
                 if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
-                    D.print("Need a new canister");
+                    Debug.print("Need a new canister");
                     
                     if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
                         ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
@@ -325,14 +335,14 @@ module {
                         return;
                     };
 
-                    let newArchive = await Archive.Archive({
+                    let newArchive = await archiveIlde.archiveIlde({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = #Stable;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = lastArchive.1.start + lastArchive.1.length;
                     });
                     //ILDE state.firstIndex is update after this if/else archive creation
-                    D.print("Have a multi archive");
+                    Debug.print("Have a multi archive");
                     let newItem = {
                         start = state.firstIndex;
                         length = 0;
@@ -340,52 +350,52 @@ module {
                     ignore Map.put(state.archives, Map.phash, Principal.fromActor(newArchive), newItem);
                     ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
                 } else { //ILDE: this is the case we reuse a previously/last create archive because there is free space
-                    D.print("just giving stats");
+                    Debug.print("just giving stats");
                     
                     let capacity = if(state.constants.archiveProperties.maxRecordsInArchiveInstance >= lastArchive.1.length){
                         Nat.sub(state.constants.archiveProperties.maxRecordsInArchiveInstance,  lastArchive.1.length);
                     } else {
-                        D.trap("max archive lenghth must be larger than the last archive length");
+                        Debug.trap("max archive lenghth must be larger than the last archive length");
                     };
 
                     (lastArchive, capacity);
                 };
             };
-        };
+        
          // ILDE: here the archive is created but it is still empty <------------
 
          // ILDE: ie creates an archive instance accessible from this function
 
-        let archive = actor(Principal.toText(archive_detail.0)) : ArchiveInterface;
+            let archive = actor(Principal.toText(archive_detail.0)) : ArchiveInterface;
          
          // ILDE: make sure that the amount of records to be archived is at least > than a constant "settleToRecords"
 
         // var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
         //     Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
-        var archive_amount = if(history.len() > state.constants.archiveProperties.settleToRecords){
-            Nat.sub(history.len(), state.constants.archiveProperties.settleToRecords)
-        } else {
-            Debug.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
-        };
+            var archive_amount = if(history.len() > state.constants.archiveProperties.settleToRecords){
+                Nat.sub(history.len(), state.constants.archiveProperties.settleToRecords)
+            } else {
+                Debug.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
+            };
 
-        D.print("amount to archive is " # debug_show(archive_amount));
+            Debug.print("amount to archive is " # debug_show(archive_amount));
 
          // ILDE: "bRbRecallAtEnd" is used to let know this function at the end, it still has work to do 
          //       we could not archive all ledger records. so we need to update "archive_amount"
 
-        var bRecallAtEnd = false;
+            var bRecallAtEnd = false;
 
-        if(archive_amount > available_capacity){
-            bRecallAtEnd := true;
-            archive_amount := available_capacity;
-        };
+            if(archive_amount > available_capacity){
+                bRecallAtEnd := true;
+                archive_amount := available_capacity;
+            };
 
-        if(archive_amount > state.constants.archiveProperties.maxRecordsToArchive){
-            bRecallAtEnd := true;
-            archive_amount := state.constants.archiveProperties.maxRecordsToArchive;
-        };
+            if(archive_amount > state.constants.archiveProperties.maxRecordsToArchive){
+                bRecallAtEnd := true;
+                archive_amount := state.constants.archiveProperties.maxRecordsToArchive;
+            };
 
-        D.print("amount to archive updated to " # debug_show(archive_amount));
+            Debug.print("amount to archive updated to " # debug_show(archive_amount));
 
          // ILDE: "Transaction" is the old "Value" type which now is "BlockIlde" 
          //       so, I had to create: "public type Transaction = T.IldeBlock;" and import ".\types" of rechainIlde 
@@ -397,21 +407,22 @@ module {
         //     Vec.add(toArchive, thisItem);
         //     if(Vec.size(toArchive) == archive_amount) break find;
         // };
-        let length = Nat.min(history.len(), 1000);
-        let end = history.end();
-        let start = history.start();
-        let resp_length = Nat.min(length, end - start);
-        let toArchive = Vec.new<Transaction>();
-        let transactions_array = Array.tabulate<T.BlockIlde>(resp_length, func (i) {
-            let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
-            block;
-        }); 
-        label find for(thisItem in Array.vals(transactions_array)){
-             Vec.add(toArchive, thisItem);
-             if(Vec.size(toArchive) == archive_amount) break find;
-        };
+            let length = Nat.min(history.len(), 1000);
+            let end = history.end();
+            let start = history.start();
+            let resp_length = Nat.min(length, end - start);
+            let toArchive = Vec.new<Transaction>();
+            let transactions_array = Array.tabulate<T.BlockIlde>(resp_length, func (i) {
+                let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
+                block;
+            }); 
+            label find for(thisItem in Array.vals(transactions_array)){
+                Vec.add(toArchive, thisItem);
+                if(Vec.size(toArchive) == archive_amount) break find;
+            };
         
-        debug if(debug_channel.clean_up) D.print("toArchive size " # debug_show(Vec.size(toArchive)));
+            Debug.print("toArchive size " # debug_show(Vec.size(toArchive)));
+        };
 
          // ILDE: actually adding them
 

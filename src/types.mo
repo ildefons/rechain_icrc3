@@ -122,5 +122,19 @@ module {
       archiveControllers : ??[Principal];
       supportedBlocks : [BlockIlde];
     };
+    
+    public type canister_settings = {
+        controllers : ?[Principal];
+        freezing_threshold : ?Nat;
+        memory_allocation : ?Nat;
+        compute_allocation : ?Nat;
+    };
+    
+    public type IC = actor {
+        update_settings : shared {
+            canister_id : Principal;
+            settings : canister_settings;
+        } -> async ();
+    };
 
 }
