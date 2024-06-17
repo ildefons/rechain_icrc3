@@ -167,7 +167,7 @@ module {
 
         let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
 
-        public func setset_ledger_canister( canister: Principal ) : () {
+        public func set_ledger_canister( canister: Principal ) : () {
             state.canister := ?canister;
         };
 
@@ -304,7 +304,15 @@ module {
                 });
                 //set archive controllers calls async
                 //ILDE: note that this method uses the costructor argument "canister" = princiapl of "ledger" canister
-                ignore update_controllers(Principal.fromActor(newArchive));
+                //ignore //ILDE: since now "update_controllers" returns a possible error in case the ledger canister Principal is not yet set
+                // ILDE: I added a await because I need to check that the ledger canister principal is well set 
+                let myerror = await update_controllers(Principal.fromActor(newArchive));
+                switch (myerror){
+                    case(#err(val)){
+                        Debug.print("The ledger canister Principal is not yet. run setset_ledger_canister( canister: Principal ) and continue")
+                    };
+                    case(_){};
+                };
 
                 let newItem = {
                     start = 0;
@@ -504,7 +512,11 @@ module {
         /// - `canisterId`: The canister ID
 
 
-        private func update_controllers(canisterId : Principal) : async (){ //<---HERE
+        private func update_controllers(canisterId : Principal) : async (T.UpdatecontrollerResponse){ //<---HERE
+            let canister = switch (state.canister) {
+                case (?obj) {obj};
+                case (_) { return #err(0) };
+            };
             switch(state.constants.archiveProperties.archiveControllers){
                 case(?val){
                     let final_list = switch(val){
@@ -527,7 +539,7 @@ module {
                 case(_){};    
             };
 
-            return;
+            return #ok(0);
         };
 
         // Handle transaction retrieval and archiving

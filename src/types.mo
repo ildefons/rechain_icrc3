@@ -99,6 +99,11 @@ module {
         #err: Text;
     };
 
+    public type UpdatecontrollerResponse = {
+        #ok : Nat;
+        #err: Nat;
+    };
+
     /// The type to request a range of transactions from the ledger canister
     public type TransactionRange = {
         start : Nat;
