@@ -142,4 +142,30 @@ module {
         } -> async ();
     };
 
+    public type BlockType = {
+        block_type : Text;
+        url : Text;
+    };
+
+    public type Stats = {
+        localLedgerSize : Nat;
+        lastIndex: Nat;
+        firstIndex: Nat;
+        archives: [(Principal, TransactionRange)];
+        supportedBlocks: [BlockType];
+        ledgerCanister : ?Principal;
+        bCleaning : Bool;
+    
+        constants : {
+        archiveProperties: {
+            maxActiveRecords : Nat;
+            settleToRecords : Nat;
+            maxRecordsInArchiveInstance : Nat;
+            maxRecordsToArchive : Nat;
+            archiveCycles : Nat;
+            archiveControllers : ??[Principal];
+        };
+    };
+  };
+
 }

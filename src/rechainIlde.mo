@@ -23,6 +23,7 @@ import Timer "mo:base/Timer";
 import archiveIlde "./archiveIlde";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Set "mo:map9/Set";
+import Iter "mo:base/Iter";
 
 module {
     // public type BlockIlde = { 
@@ -125,6 +126,7 @@ module {
                                               // ILDE: I have to add this paramter because it is used by "update_controllers"
             var lastIndex = 0;
             var firstIndex = 0;
+            var history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
             var ledger : Vec.Vector<Transaction> = Vec.new<Transaction>();
             var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
             var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
@@ -165,7 +167,7 @@ module {
         /// The IC actor used for updating archive controllers
         private let ic : T.IC = actor "aaaaa-aa";
 
-        let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
+        //let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
 
         public func set_ledger_canister( canister: Principal ) : () {
             state.canister := ?canister;
@@ -181,7 +183,7 @@ module {
             let hasError = Array.find<ReducerResponse<T.ActionError>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
             switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
             Debug.print(Nat.toText(102));
-            let blockId = history.end() + 1;
+            let blockId = state.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
             ignore Array.map<ReducerResponse<T.ActionError>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
             Debug.print(Nat.toText(103));
@@ -221,9 +223,12 @@ module {
             Debug.print(Nat.toText(109));
             // 4) Add new block to ledger/history
             Debug.print(Nat.toText(1));
-            Debug.print("History size before inside:" # Nat.toText(history.len()));
-            ignore history.add(thisTrx);
-            Debug.print("History size after inside:" # Nat.toText(history.len()));
+            Debug.print("History size before inside:" # Nat.toText(state.history.len()));
+            ignore state.history.add(thisTrx);
+            //ILDEbegin: One we add the block, we need to increase the lastIndex
+            state.lastIndex := state.lastIndex + 1;
+            //ILDEend
+            Debug.print("History size after inside:" # Nat.toText(state.history.len()));
 
 
             //IMHERE<-------
@@ -234,11 +239,11 @@ module {
             // <---HOW TO KNOW IF NECESSARY???
             // if(Vec.size(state.ledger) > state.constants.archiveProperties.maxActiveRecords){
             Debug.print(Nat.toText(601));
-            if(history.len() > constants.maxActiveRecords){
+            if(state.history.len() > constants.maxActiveRecords){
                 switch(state.cleaningTimer){ 
                     case(null){ //only need one active timer
                         Debug.print(Nat.toText(602));
-                        state.cleaningTimer := ?Timer.setTimer(#seconds(10), check_clean_up);  //<--- IM HERE
+                        state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);  //<--- IM HERE
                     };
                     case(_){Debug.print(Nat.toText(603));};
                 };
@@ -266,13 +271,16 @@ module {
         
         //ensure only one cleaning job is running
     
-            if(state.bCleaning) return; //only one cleaning at a time;
+            if(state.bCleaning) {
+                Debug.print("state.bCleaning");
+                return; //only one cleaning at a time;
+            };
             Debug.print("Not currently Cleaning");
         
         //don't clean if not necessary
-    
+            Debug.print("history.len(): "# Nat.toText(state.history.len()));
             //if(Vec.size(state.ledger) < state.constants.archiveProperties.maxActiveRecords) return;
-            if(history.len() < state.constants.archiveProperties.maxActiveRecords) return;
+            if(state.history.len() < state.constants.archiveProperties.maxActiveRecords) return;
 
         // ILDE: let know that we are creating an archive canister so noone else try at the same time
 
@@ -281,6 +289,7 @@ module {
         //cleaning
 
             Debug.print("Now we are cleaning");
+            Debug.print("Map.size(state.archives): "# Nat.toText(Map.size(state.archives)));
 
             let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){ //ILDE: if first archive canister
                 //no archive exists - create a new canister
@@ -381,8 +390,8 @@ module {
 
         // var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
         //     Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
-            var archive_amount = if(history.len() > state.constants.archiveProperties.settleToRecords){
-                Nat.sub(history.len(), state.constants.archiveProperties.settleToRecords)
+            var archive_amount = if(state.history.len() > state.constants.archiveProperties.settleToRecords){
+                Nat.sub(state.history.len(), state.constants.archiveProperties.settleToRecords)
             } else {
                 Debug.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
             };
@@ -416,13 +425,13 @@ module {
         //     Vec.add(toArchive, thisItem);
         //     if(Vec.size(toArchive) == archive_amount) break find;
         // };
-            let length = Nat.min(history.len(), 1000);
-            let end = history.end();
-            let start = history.start();
+            let length = Nat.min(state.history.len(), 1000);
+            let end = state.history.end();
+            let start = state.history.start();
             let resp_length = Nat.min(length, end - start);
             let toArchive = Vec.new<Transaction>();
             let transactions_array = Array.tabulate<T.BlockIlde>(resp_length, func (i) {
-                let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
+                let ?block = state.history.getOpt(start + i) else Debug.trap("Internal error");
                 block;
             }); 
             label find for(thisItem in Array.vals(transactions_array)){
@@ -431,62 +440,98 @@ module {
             };
         
             Debug.print("toArchive size " # debug_show(Vec.size(toArchive)));
-        };
+        
 
          // ILDE: actually adding them
 
-    //         try{
-    //             let result = await archive.append_transactions(Vec.toArray(toArchive));
-    //             let stats = switch(result){
-    //             case(#ok(stats)) stats;
-    //             case(#Full(stats)) stats;            //ILDE: full is not an error
-    //             case(#err(_)){
-    //                 //do nothing...it failed;
-    //                 state.bCleaning :=false;         //ILDE: if error, we can desactivate bCleaning (set to True in the begining) and return (WHY!!!???)
-    //                 return;
-    //             };
-    //             };
+        try{
+            let result = await archive.append_transactions(Vec.toArray(toArchive));
+            let stats = switch(result){
+                case(#ok(stats)) stats;
+                case(#Full(stats)) stats;            //ILDE: full is not an error
+                case(#err(_)){
+                    //do nothing...it failed;
+                    state.bCleaning :=false;         //ILDE: if error, we can desactivate bCleaning (set to True in the begining) and return (WHY!!!???)
+                    return;
+                };
+            };
 
          // ILDE: if everything goes well, 1) we create a new empty ledger
          //                                2) update firstIndex
          //                                3) update map of archives
          //                                4)
 
-    //             let new_ledger = Vec.new<Transaction>();
-    //             var tracker = 0;
-    //             let archivedAmount = Vec.size(toArchive);
-    //             for(thisItem in Vec.vals(state.ledger)){
-    //             if(tracker >= archivedAmount){
-    //                 Vec.add(new_ledger, thisItem)
-    //             };
-    //             tracker += 1;
-    //             };
-    //             state.firstIndex := state.firstIndex + archivedAmount;
-    //             state.ledger := new_ledger;
-    //             debug if(debug_channel.clean_up) D.print("new ledger size " # debug_show(Vec.size(state.ledger)));
-    //             ignore Map.put(state.archives, Map.phash, Principal.fromActor(archive),{
-    //             start = archive_detail.1.start;     // ILDE: unused?!
-    //             length = archive_detail.1.length + archivedAmount;     // ILDE: unused?!
-    //             })
-    //         } catch (_){
-    //             //what do we do when it fails?  keep them in memory?
-    //             state.bCleaning :=false;
-    //             return;
-    //         };
+            // let new_ledger = Vec.new<Transaction>();
+            // var tracker = 0;
+            // let archivedAmount = Vec.size(toArchive);
+            // for(thisItem in Vec.vals(state.ledger)){
+            //     if(tracker >= archivedAmount){
+            //         Vec.add(new_ledger, thisItem)
+            //     };
+            //     tracker += 1;
+            // };
+            //ILDE: just remove those block already archived
+            let archivedAmount = Vec.size(toArchive);
+            // remove "archived_amount" blocks from the imnitial history
+            state.history.deleteTo(state.firstIndex + archivedAmount);
+            //ILDEend
+            state.firstIndex := state.firstIndex + archivedAmount;
+            //ILDE state.ledger := new_ledger;
+            Debug.print("new ledger size " # debug_show(state.history.len()));
+            
+            ignore Map.put(state.archives, Map.phash, Principal.fromActor(archive),{
+                start = archive_detail.1.start;     
+                length = archive_detail.1.length + archivedAmount;     
+            })
+        } catch (_){
+                //what do we do when it fails?  keep them in memory?
+                state.bCleaning := false;
+                return;
+        };
 
          // ILDE: bCleaning :=false; to allow other timers to act
          //       check bRecallAtEnd=True to make it possible to finish non archived transactions with a new timer
 
-    //         state.bCleaning :=false;
+        state.bCleaning :=false;
 
-    //         if(bRecallAtEnd){
-    //             state.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
-    //         };
+        if(bRecallAtEnd){
+            state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);
+        };
 
-    //         debug if(debug_channel.clean_up) D.print("Checking clean up" # debug_show(stats()));
-    //         return;
-    //         };
+        Debug.print("Checking clean up" # debug_show(stats()));
+        return;
+    };
 
+    
+
+    /// ILDE: code from ICDev
+    /// Returns the statistics of the migration
+    ///
+    /// This function returns the statistics of the migration.
+    ///
+    /// Returns:
+    /// - The migration statistics
+    public func stats() : T.Stats {
+      return {
+        localLedgerSize = state.history.len(); //ILDE: Vec.size(state.ledger);
+        lastIndex = state.lastIndex;
+        firstIndex = state.firstIndex;
+        archives = Iter.toArray(Map.entries<Principal, TransactionRange>(state.archives));
+        ledgerCanister = state.canister;
+        supportedBlocks = Iter.toArray<BlockType>(Vec.vals(state.supportedBlocks));
+        bCleaning = state.bCleaning;
+        constants = {
+          archiveProperties = {
+            maxActiveRecords = state.constants.archiveProperties.maxActiveRecords;
+            settleToRecords = state.constants.archiveProperties.settleToRecords;
+            maxRecordsInArchiveInstance = state.constants.archiveProperties.maxRecordsInArchiveInstance;
+            maxRecordsToArchive = state.constants.archiveProperties.maxRecordsToArchive;
+            archiveCycles = state.constants.archiveProperties.archiveCycles;
+            archiveControllers = state.constants.archiveProperties.archiveControllers;
+          };
+        };
+      };
+    };
 
 
     // ILDE: this function is executed by the timer to create an archive and store the current ledger
@@ -546,11 +591,11 @@ module {
         // Handle transaction retrieval and archiving
         public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
             let length = Nat.min(req.length, 1000);
-            let end = history.end();
-            let start = history.start();
+            let end = state.history.end();
+            let start = state.history.start();
             let resp_length = Nat.min(length, end - start);
             let transactions = Array.tabulate<T.BlockIlde>(resp_length, func (i) {  //ILDE NOTE "Block" ---> "BlockIlde"
-                let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
+                let ?block = state.history.getOpt(start + i) else Debug.trap("Internal error");
                 block;
                 }); 
 

@@ -19,6 +19,7 @@ import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
 import Timer "mo:base/Timer";
+import ExperimentalCycles "mo:base/ExperimentalCycles";
 // module rechainIlde {
 //     public type BlockIlde = { 
 //         #Blob : Blob; 
@@ -595,6 +596,8 @@ actor Self {
     };
     public func test2(): async (Nat) {
 
+        Debug.print("cycles:" # debug_show(ExperimentalCycles.balance() ));
+
         // ILDE: I need to set this manually 
         chain_ilde.set_ledger_canister(Principal.fromActor(Self));
 
@@ -639,6 +642,13 @@ actor Self {
 
         return 0;
                 
+    };
+    
+    public func test3(): async (Nat) {
+
+        Debug.print("cycles:" # debug_show(ExperimentalCycles.balance() ));
+        Debug.print("cycles:" # debug_show(ExperimentalCycles.available() ));
+        0;
     };
 
     // func check_clean_up() : async (){
