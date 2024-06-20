@@ -24,6 +24,7 @@ import archiveIlde "./archiveIlde";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Set "mo:map9/Set";
 import Iter "mo:base/Iter";
+import Bool "mo:base/Bool";
 
 module {
     // public type BlockIlde = { 
@@ -109,16 +110,16 @@ module {
         }) {
 
         //ILDE: following vars and cts are mostly taken frm ICDev implementation
-        let constants = {
-            var maxActiveRecords = 2;//000;
-            var settleToRecords = 1000;
-            var maxRecordsInArchiveInstance = 10_000_000;
-            var maxArchivePages  = 62500;
-            var archiveIndexType = #Stable;
-            var maxRecordsToArchive = 10_000;
-            var archiveCycles = 2_000_000_000_000; //two trillion
-            var archiveControllers = null;
-        };
+        // let constants = {
+        //     var maxActiveRecords = 2;//000;
+        //     var settleToRecords = 1000;
+        //     var maxRecordsInArchiveInstance = 10_000_000;
+        //     var maxArchivePages  = 62500;
+        //     var archiveIndexType = #Stable;
+        //     var maxRecordsToArchive = 10_000;
+        //     var archiveCycles = 2_000_000_000_000; //two trillion
+        //     var archiveControllers = null;
+        // };
 
         //ILDE: state variable (in the future I will join them all in a single variable "state"
         let state = {
@@ -138,13 +139,13 @@ module {
                 archiveProperties = switch(args){
                     case(_){
                         {
-                        var maxActiveRecords = 2;//000;
-                        var settleToRecords = 1000;
-                        var maxRecordsInArchiveInstance = 10_000_000;
-                        var maxArchivePages  = 62500;
+                        var maxActiveRecords = 2;//2000;    //ILDE: max size of ledger before archiving (state.history)
+                        var settleToRecords = 1;//1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
+                        var maxRecordsInArchiveInstance = 10_000_000; //ILDE: if archive full, we create a new one
+                        var maxArchivePages  = 62500;      //ILDE: ArchiveIlde constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
                         var archiveIndexType = #Stable;
-                        var maxRecordsToArchive = 10_000;
-                        var archiveCycles = 2_000_000_000_000; //two trillion
+                        var maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
+                        var archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
                         var archiveControllers = null;
                         };
                     };   // ILDE: TBD (requires adding "args" parameter to ildeChain constructor interface)
@@ -239,7 +240,7 @@ module {
             // <---HOW TO KNOW IF NECESSARY???
             // if(Vec.size(state.ledger) > state.constants.archiveProperties.maxActiveRecords){
             Debug.print(Nat.toText(601));
-            if(state.history.len() > constants.maxActiveRecords){
+            if(state.history.len() > state.constants.archiveProperties.maxActiveRecords){
                 switch(state.cleaningTimer){ 
                     case(null){ //only need one active timer
                         Debug.print(Nat.toText(602));
@@ -297,14 +298,16 @@ module {
                 Debug.print("Creating a canister");
 
                 if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
+                    Debug.print("c1");
                     ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
+                    Debug.print("c2");
                 } else{
                     //warning ledger will eventually overload
                     Debug.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
                     state.bCleaning :=false;
                     return;
                 };
-
+                Debug.print("c3");
                 //commits state and creates archive
                 let newArchive = await archiveIlde.archiveIlde({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
@@ -312,6 +315,7 @@ module {
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = 0;
                 });
+                Debug.print("c4");
                 //set archive controllers calls async
                 //ILDE: note that this method uses the costructor argument "canister" = princiapl of "ledger" canister
                 //ignore //ILDE: since now "update_controllers" returns a possible error in case the ledger canister Principal is not yet set
@@ -332,7 +336,7 @@ module {
                 Debug.print("Have an archive");
 
                 ignore Map.put<Principal, TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
-
+                Debug.print("c5");
                 ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
             } else{ 
                 //check that the last one isn't full;
@@ -383,17 +387,20 @@ module {
          // ILDE: here the archive is created but it is still empty <------------
 
          // ILDE: ie creates an archive instance accessible from this function
-
+            Debug.print("c6");
             let archive = actor(Principal.toText(archive_detail.0)) : ArchiveInterface;
-         
+            Debug.print("c7");
          // ILDE: make sure that the amount of records to be archived is at least > than a constant "settleToRecords"
 
         // var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
         //     Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
+            Debug.print("state.history.len():"#Nat.toText(state.history.len()));
+            Debug.print("state.constants.archiveProperties.settleToRecords:"#Nat.toText(state.constants.archiveProperties.settleToRecords));
             var archive_amount = if(state.history.len() > state.constants.archiveProperties.settleToRecords){
                 Nat.sub(state.history.len(), state.constants.archiveProperties.settleToRecords)
             } else {
                 Debug.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
+
             };
 
             Debug.print("amount to archive is " # debug_show(archive_amount));
