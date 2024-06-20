@@ -165,7 +165,33 @@ module {
             archiveCycles : Nat;
             archiveControllers : ??[Principal];
         };
+        };
     };
-  };
+    
+    public type GetBlocksArgs = [TransactionRange];
+    
+    public type GetTransactionsResult = {
+        // Total number of transactions in the
+        // transaction log
+        log_length : Nat;        
+        blocks : [{ id : Nat; block : BlockIlde }];
+        archived_blocks : [ArchivedTransactionResponse];
+    };
+    public type GetTransactionsFn = shared query ([TransactionRange]) -> async GetTransactionsResult;
+    public type ArchivedTransactionResponse = {
+        args : [TransactionRange];
+        callback : GetTransactionsFn;
+    };
 
+    public type GetBlocksResult = GetTransactionsResult;
+    
+    public type GetArchivesArgs =  {
+    // The last archive seen by the client.
+    // The Ledger will return archives coming
+    // after this one if set, otherwise it
+    // will return the first archives.
+      from : ?Principal;
+    };
+    public type GetArchivesResult
+    
 }
