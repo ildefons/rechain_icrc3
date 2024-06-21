@@ -622,7 +622,8 @@ module {
     ///
     /// Returns:
     /// - The result of getting transactions
-    public func get_blocks(args: T.GetBlocksArgs) : async T.GetBlocksResult{
+    
+    public func get_blocks(args: T.GetBlocksArgs) : T.GetBlocksResult{
         Debug.print("get_transaction_states" # debug_show(stats()));
         let local_ledger_length = state.history.len(); //ILDE Vec.size(state.ledger);
         let ledger_length = if(state.lastIndex == 0 and local_ledger_length == 0) {
