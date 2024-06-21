@@ -653,11 +653,11 @@ actor Self {
 
     
     public query func icrc3_get_blocks(args: T.GetBlocksArgs) : async T.GetBlocksResult{
-        return rechainIlde.get_blocks(args);
+        return chain_ilde.get_blocks(args);
     };
 
     public query func icrc3_get_archives(args: T.GetArchivesArgs) : async T.GetArchivesResult{
-        return icrc3().get_archives(args);
+        return chain_ilde.get_archives(args);
     };
 
     // func check_clean_up() : async (){

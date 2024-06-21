@@ -192,6 +192,47 @@ module {
     // will return the first archives.
       from : ?Principal;
     };
-    public type GetArchivesResult
     
+    public type GetArchivesResult = [GetArchivesResultItem];
+
+    public type GetArchivesResultItem = {
+        // The id of the archive
+        canister_id : Principal;
+
+        // The first block in the archive
+        start : Nat;
+
+        // The last block in the archive
+        end : Nat;
+    };
+
+    public type ServiceBlock = { id : Nat; block: BlockIlde };
+
+    public type TxIndex = Nat;
+
+    public type ArchiveInterface = actor {
+      /// Appends the given transactions to the archive.
+      /// > Only the Ledger canister is allowed to call this method
+      append_transactions : shared ([Transaction]) -> async AddTransactionsResponse;
+
+      /// Returns the total number of transactions stored in the archive
+      total_transactions : shared query () -> async Nat;
+
+      /// Returns the transaction at the given index
+      get_transaction : shared query (Nat) -> async ?Transaction;
+
+      /// Returns the transactions in the given range
+      icrc3_get_blocks : shared query (TransactionRange) -> async TransactionsResult;
+
+      /// Returns the number of bytes left in the archive before it is full
+      /// > The capacity of the archive canister is 32GB
+      remaining_capacity : shared query () -> async Nat;
+    };
+    
+    public type ICRC3Interface = actor {
+        icrc3_get_blocks : GetTransactionsFn;
+        icrc3_get_archives : query (GetArchivesArgs) -> async (GetArchivesResult) ;
+        //icrc3_get_tip_certificate : query () -> async (?DataCertificate);
+        icrc3_supported_block_types: query () -> async [BlockType];
+  };
 }

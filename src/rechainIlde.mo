@@ -22,6 +22,7 @@ import Text "mo:base/Text";
 import Timer "mo:base/Timer";
 import archiveIlde "./archiveIlde";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
+import CertifiedData "mo:base/CertifiedData";
 import Set "mo:map9/Set";
 import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
@@ -79,24 +80,24 @@ module {
 
     /// ILDE: copied from ICDev ICRC3  Types implementation 
     /// The Interface for the Archive canister
-    public type ArchiveInterface = actor {
-      /// Appends the given transactions to the archive.
-      /// > Only the Ledger canister is allowed to call this method
-      append_transactions : shared ([Transaction]) -> async AddTransactionsResponse;
+    // public type ArchiveInterface = actor {
+    //   /// Appends the given transactions to the archive.
+    //   /// > Only the Ledger canister is allowed to call this method
+    //   append_transactions : shared ([Transaction]) -> async AddTransactionsResponse;
 
-      /// Returns the total number of transactions stored in the archive
-      total_transactions : shared query () -> async Nat;
+    //   /// Returns the total number of transactions stored in the archive
+    //   total_transactions : shared query () -> async Nat;
 
-      /// Returns the transaction at the given index
-      get_transaction : shared query (Nat) -> async ?Transaction;
+    //   /// Returns the transaction at the given index
+    //   get_transaction : shared query (Nat) -> async ?Transaction;
 
-      /// Returns the transactions in the given range
-      icrc3_get_blocks : shared query (TransactionRange) -> async TransactionsResult;
+    //   /// Returns the transactions in the given range
+    //   icrc3_get_blocks : shared query (TransactionRange) -> async TransactionsResult;
 
-      /// Returns the number of bytes left in the archive before it is full
-      /// > The capacity of the archive canister is 32GB
-      remaining_capacity : shared query () -> async Nat;
-    };
+    //   /// Returns the number of bytes left in the archive before it is full
+    //   /// > The capacity of the archive canister is 32GB
+    //   remaining_capacity : shared query () -> async Nat;
+    // };
     public class ChainIlde<A,E,B>({
         mem: MemIlde;
         //mem: Mem<A>;
@@ -388,7 +389,7 @@ module {
 
          // ILDE: ie creates an archive instance accessible from this function
             Debug.print("c6");
-            let archive = actor(Principal.toText(archive_detail.0)) : ArchiveInterface;
+            let archive = actor(Principal.toText(archive_detail.0)) : T.ArchiveInterface;
             Debug.print("c7");
          // ILDE: make sure that the amount of records to be archived is at least > than a constant "settleToRecords"
 
@@ -539,8 +540,7 @@ module {
         };
       };
     };
-
-
+ 
     // ILDE: this function is executed by the timer to create an archive and store the current ledger
     // Is very similar to the ICDev implementation:
     
@@ -554,64 +554,200 @@ module {
     //     };
         
 
-        /// ILDE: This method is from ICDev ICRC3 implementation
-        /// ILDE: This method uses "canister" which is the princiapl of the main ledger actor
-        /// ILDE: so, I have to pass "canister = Principal.fromActor(this)" from "ledger" to rechainIlde 
-        /// Updates the controllers for the given canister
-        ///
-        /// This function updates the controllers for the given canister.
-        ///
-        /// Arguments:
-        /// - `canisterId`: The canister ID
-
-
-        private func update_controllers(canisterId : Principal) : async (T.UpdatecontrollerResponse){ //<---HERE
-            let canister = switch (state.canister) {
-                case (?obj) {obj};
-                case (_) { return #err(0) };
-            };
-            switch(state.constants.archiveProperties.archiveControllers){
-                case(?val){
-                    let final_list = switch(val){
-                        case(?list){
-                            let a_set = Set.fromIter<Principal>(list.vals(), Map.phash);
-                            Set.add(a_set, Map.phash, canister);
-                            ?Set.toArray(a_set);
-                        };
-                        case(null){
-                            ?[canister];
-                        };
+    /// ILDE: This method is from ICDev ICRC3 implementation
+    /// ILDE: This method uses "canister" which is the princiapl of the main ledger actor
+    /// ILDE: so, I have to pass "canister = Principal.fromActor(this)" from "ledger" to rechainIlde 
+    /// Updates the controllers for the given canister
+    ///
+    /// This function updates the controllers for the given canister.
+    ///
+    /// Arguments:
+    /// - `canisterId`: The canister ID
+    private func update_controllers(canisterId : Principal) : async (T.UpdatecontrollerResponse){ //<---HERE
+        let canister = switch (state.canister) {
+            case (?obj) {obj};
+            case (_) { return #err(0) };
+        };
+        switch(state.constants.archiveProperties.archiveControllers){
+            case(?val){
+                let final_list = switch(val){
+                    case(?list){
+                        let a_set = Set.fromIter<Principal>(list.vals(), Map.phash);
+                        Set.add(a_set, Map.phash, canister);
+                        ?Set.toArray(a_set);
                     };
-                    ignore ic.update_settings(({canister_id = canisterId; settings = {
-                            controllers = final_list;
-                            freezing_threshold = null;
-                            memory_allocation = null;
-                            compute_allocation = null;
-                    }}));
+                    case(null){
+                        ?[canister];
+                    };
                 };
-                case(_){};    
+                ignore ic.update_settings(({canister_id = canisterId; settings = {
+                        controllers = final_list;
+                        freezing_threshold = null;
+                        memory_allocation = null;
+                        compute_allocation = null;
+                }}));
             };
-
-            return #ok(0);
+            case(_){};    
         };
 
-        // Handle transaction retrieval and archiving
-        public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
-            let length = Nat.min(req.length, 1000);
-            let end = state.history.end();
-            let start = state.history.start();
-            let resp_length = Nat.min(length, end - start);
-            let transactions = Array.tabulate<T.BlockIlde>(resp_length, func (i) {  //ILDE NOTE "Block" ---> "BlockIlde"
-                let ?block = state.history.getOpt(start + i) else Debug.trap("Internal error");
-                block;
-                }); 
+        return #ok(0);
+    };
 
-            {
-                first_index=start;
-                log_length=end;
-                transactions;
-                archived_transactions = [];
-            }
+    // Handle transaction retrieval and archiving
+    public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
+        let length = Nat.min(req.length, 1000);
+        let end = state.history.end();
+        let start = state.history.start();
+        let resp_length = Nat.min(length, end - start);
+        let transactions = Array.tabulate<T.BlockIlde>(resp_length, func (i) {  //ILDE NOTE "Block" ---> "BlockIlde"
+            let ?block = state.history.getOpt(start + i) else Debug.trap("Internal error");
+            block;
+            }); 
+
+        {
+            first_index=start;
+            log_length=end;
+            transactions;
+            archived_transactions = [];
         };
     };
+
+    /// ILDE: code from ICDev
+    /// Returns a set of transactions and pointers to archives if necessary
+    ///
+    /// This function returns a set of transactions and pointers to archives if necessary.
+    ///
+    /// Arguments:
+    /// - `args`: The transaction range
+    ///
+    /// Returns:
+    /// - The result of getting transactions
+    public func get_blocks(args: T.GetBlocksArgs) : async T.GetBlocksResult{
+        Debug.print("get_transaction_states" # debug_show(stats()));
+        let local_ledger_length = state.history.len(); //ILDE Vec.size(state.ledger);
+        let ledger_length = if(state.lastIndex == 0 and local_ledger_length == 0) {
+            0;
+        } else {
+            state.lastIndex + 1;
+        };
+
+        Debug.print("have ledger length" # debug_show(ledger_length));
+        
+        //get the transactions on this canister
+        let transactions = Vec.new<T.ServiceBlock>();
+        for(thisArg in args.vals()){
+            D.print("setting start " # debug_show(thisArg.start + thisArg.length, state.firstIndex));
+            
+            let start = if(thisArg.start + thisArg.length > state.firstIndex){
+                Debug.print("setting start " # debug_show(thisArg.start + thisArg.length, state.firstIndex));
+                let start = if(thisArg.start <= state.firstIndex){
+                    Debug.print("setting start " # debug_show(0));
+                    state.firstIndex;//ILDE:"our sliding window first valid element is state.firstIndex not 0" 0;
+            } else{
+                Debug.print("getting trx" # debug_show(state.lastIndex, state.firstIndex, thisArg));
+                if(thisArg.start >= (state.firstIndex)){
+                    thisArg.start;//ILDE:"thisArg.start is already the index in our sliding window" Nat.sub(thisArg.start, (state.firstIndex));
+                } else {
+                    D.trap("last index must be larger than requested start plus one");
+                };
+            };
+
+            let end = if(state.history.len()==0){ // ILDE Vec.size(state.ledger)==0){
+                state.lastIndex;//ILDE: 0;
+            } else if(thisArg.start + thisArg.length >= state.lastIndex){
+                state.lastIndex;//ILDE: "lastIndex is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
+            } else {
+                thisArg.start + thisArg.length;//ILDE
+                //ILDE Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))
+            };
+
+            Debug.print("getting local transactions" # debug_show(start,end)); // ILDE<-----
+            // ILDE: buf.getOpt(1) // -> ?"b"
+            //some of the items are on this server
+            if(state.history.len() > 0 ){ // ILDE Vec.size(state.ledger) > 0){
+                label search for(thisItem in Iter.range(start, end)){
+                    Debug.print("testing" # debug_show(thisItem));
+                    if(thisItem >= state.lastIndex){ //ILDE state.history.len()){ //ILDE Vec.size(state.ledger)){
+                        break search;
+                    };
+                    Vec.add(transactions, {
+                        id = thisItem; //ILDE state.firstIndex + thisItem;
+                        block = state.history.getOpt(thisItem); // ILDE Vec.get(state.ledger, thisItem)
+                    });
+                };
+            };
+
+        };
+      };
+
+      //get any relevant archives
+      let archives = Map.new<Principal, (Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)>();
+
+      for(thisArgs in args.vals()){//<-----
+        if(thisArgs.start < state.firstIndex){
+          
+          Debug.print("archive settings are " # debug_show(Iter.toArray(Map.entries(state.archives))));
+          var seeking = thisArgs.start;
+          label archive for(thisItem in Map.entries(state.archives)){
+            if (seeking > Nat.sub(thisItem.1.start + thisItem.1.length, 1) or thisArgs.start + thisArgs.length <= thisItem.1.start) {
+                continue archive;
+            };
+
+            // Calculate the start and end indices of the intersection between the requested range and the current archive.
+            let overlapStart = Nat.max(seeking, thisItem.1.start);
+            let overlapEnd = Nat.min(thisArgs.start + thisArgs.length - 1, thisItem.1.start + thisItem.1.length - 1);
+            let overlapLength = Nat.sub(overlapEnd, overlapStart) + 1;
+
+            // Create an archive request for the overlapping range.
+            switch(Map.get(archives, Map.phash, thisItem.0)){
+              case(null){
+                let newVec = Vec.new<T.TransactionRange>();
+                Vec.add(newVec, {
+                    start = overlapStart;
+                    length = overlapLength;
+                  });
+                let fn  : T.GetTransactionsFn = (actor(Principal.toText(thisItem.0)) : T.ICRC3Interface).icrc3_get_blocks;
+                ignore Map.put<Principal, (Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)>(archives, Map.phash, thisItem.0, (newVec, fn));
+              };
+              case(?existing){
+                Vec.add(existing.0, {
+                  start = overlapStart;
+                  length = overlapLength;
+                });
+              };
+            };
+
+            // If the overlap ends exactly where the requested range ends, break out of the loop.
+            if (overlapEnd == Nat.sub(thisArgs.start + thisArgs.length, 1)) {
+                break archive;
+            };
+
+            // Update seeking to the next desired transaction.
+            seeking := overlapEnd + 1;
+          };
+        };
+      };
+
+      //<-----------
+      Debug.print("returning transactions result" # debug_show(ledger_length, Vec.size(transactions), Map.size(archives)));
+      //build the result
+      return {
+        log_length = ledger_length;
+        certificate = CertifiedData.getCertificate(); //will be null in update calls
+        blocks = Vec.toArray(transactions);
+        archived_blocks = Iter.toArray<T.ArchivedTransactionResponse>(Iter.map< (Vec.Vector<TransactionRange>, T.GetTransactionsFn), T.ArchivedTransactionResponse>(Map.vals(archives), func(x :(Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)):  T.ArchivedTransactionResponse{
+          {
+            args = Vec.toArray(x.0);
+            callback = x.1;
+          }
+
+        }));
+      }
+    };
+
+    };
+
+    // public query func get_archives(args: T.GetArchivesArgs) : async T.GetArchivesResult{
+    //     return chain_ilde.get_archives(args);
+    // };
 };
