@@ -2,7 +2,7 @@ import SW "mo:stable-write-only"; // ILDE: I have to add mops.toml
 import T "./types";   // ILDE: before it was ../migration/types
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Vec "mo:vector";
-import D "mo:base/Debug";
+import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 
@@ -15,9 +15,9 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
 //       get = false;
 //     };
 
-  D.print("new archive created with the following args" # debug_show(_args));
+  Debug.print("new archive created with the following args" # debug_show(_args));
 
-//     type Transaction = T.Current.Transaction;
+  //     type Transaction = T.Current.Transaction;
   type Transaction = T.BlockIlde;
   type MemoryBlock = {
       offset : Nat64;
@@ -45,7 +45,7 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
 
   public shared ({ caller }) func append_transactions(txs : [Transaction]) : async AddTransactionsResponse {
 
-    D.print("adding transactions to archive" # debug_show(txs));
+    Debug.print("adding transactions to archive" # debug_show(txs));
 
     if (caller != ledger_canister_id) {
         return #err("Unauthorized Access: Only the ledger canister can access this archive canister");
@@ -54,7 +54,7 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
     label addrecs for(thisItem in txs.vals()){
       let stats = sw.stats();
       if(stats.itemCount >= args.maxRecords){
-        D.print("braking add recs");//ILDE: if(debug_channel.append)D.print("braking add recs");
+        Debug.print("braking add recs");//ILDE: if(debug_channel.append)D.print("braking add recs");
         break addrecs;
       };
       ignore sw.write(to_candid(thisItem));
@@ -75,7 +75,7 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
       total_txs();
   };
 
-  public shared query func get_transaction(tx_index : T.Current.TxIndex) : async ?Transaction {
+  public shared query func get_transaction(tx_index : T.TxIndex) : async ?Transaction {
       return _get_transaction(tx_index);
   };
 
@@ -83,7 +83,7 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
       let stats = sw.stats();
       Debug.print("getting transaction" # debug_show(tx_index, args.firstIndex, stats));
       
-      let target_index =  if(tx_index >= args.firstIndex) Nat.sub(tx_index, args.firstIndex) else D.trap("Not on this canister requested " # Nat.toText(tx_index) # "first index: " # Nat.toText(args.firstIndex));
+      let target_index =  if(tx_index >= args.firstIndex) Nat.sub(tx_index, args.firstIndex) else Debug.trap("Not on this canister requested " # Nat.toText(tx_index) # "first index: " # Nat.toText(args.firstIndex));
       Debug.print("target" # debug_show(target_index));
       if(target_index >= stats.itemCount) Debug.trap("requested an item outside of this archive canister. first index: " # Nat.toText(args.firstIndex) # " last item" # Nat.toText(args.firstIndex + stats.itemCount - 1));
       Debug.print("target" # debug_show(target_index));
@@ -95,7 +95,7 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
 
     Debug.print("request for archive blocks " # debug_show(req));
 
-    let transactions = Vec.new<{id:Nat; block: Transaction}>();
+    let transactions = Vec.new<{id:Nat; block: ?Transaction}>();
     for(thisArg in req.vals()){
       var tracker = thisArg.start;
       for(thisItem in Iter.range(thisArg.start, thisArg.start + thisArg.length - 1)){
@@ -105,8 +105,9 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
             //should be unreachable...do we return an error?
           };
           case(?val){
-            D.print("found" # debug_show(val));
-            Vec.add(transactions, {id = tracker; block = val});
+            Debug.print("found" # debug_show(val));
+            var aux: ?(T.BlockIlde) = ?val;
+            Vec.add(transactions, {id = tracker; block = ?val});
           };
         };
         tracker += 1;
@@ -140,5 +141,5 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
   public query func cycles() : async Nat {
       ExperimentalCycles.balance();
   };
-  
+
 };

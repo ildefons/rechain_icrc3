@@ -656,9 +656,9 @@ actor Self {
         return chain_ilde.get_blocks(args);
     };
 
-    public query func icrc3_get_archives(args: T.GetArchivesArgs) : async T.GetArchivesResult{
-        return chain_ilde.get_archives(args);
-    };
+    // public query func icrc3_get_archives(args: T.GetArchivesArgs) : async T.GetArchivesResult{
+    //     return chain_ilde.get_archives(args);
+    // };
 
     // func check_clean_up() : async (){
     //         //clear the timer

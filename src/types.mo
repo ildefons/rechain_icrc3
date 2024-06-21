@@ -174,7 +174,7 @@ module {
         // Total number of transactions in the
         // transaction log
         log_length : Nat;        
-        blocks : [{ id : Nat; block : BlockIlde }];
+        blocks : [{ id : Nat; block : ?BlockIlde }];
         archived_blocks : [ArchivedTransactionResponse];
     };
     public type GetTransactionsFn = shared query ([TransactionRange]) -> async GetTransactionsResult;
@@ -206,7 +206,7 @@ module {
         end : Nat;
     };
 
-    public type ServiceBlock = { id : Nat; block: BlockIlde };
+    public type ServiceBlock = { id : Nat; block: ?BlockIlde };
 
     public type TxIndex = Nat;
 
@@ -228,7 +228,7 @@ module {
       /// > The capacity of the archive canister is 32GB
       remaining_capacity : shared query () -> async Nat;
     };
-    
+
     public type ICRC3Interface = actor {
         icrc3_get_blocks : GetTransactionsFn;
         icrc3_get_archives : query (GetArchivesArgs) -> async (GetArchivesResult) ;

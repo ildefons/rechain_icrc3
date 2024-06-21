@@ -61,15 +61,15 @@ module {
         archived_transactions : [ArchivedRange];
     };
     public type ArchivedRange = {
-        callback : shared query GetBlocksRequest -> async TransactionRange;
+        callback : shared query GetBlocksRequest -> async T.TransactionRange;
         start : Nat;
         length : Nat;
     };
     //public type TransactionRange = { transactions : [T.BlockIlde] };
-    public type TransactionRange = {
-      start : Nat;
-      length : Nat;
-    };
+    // public type TransactionRange = {
+    //   start : Nat;
+    //   length : Nat;
+    // };
     public type BlockType = {
         block_type : Text;
         url : Text;
@@ -134,7 +134,7 @@ module {
             var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
             var latest_hash = null;
             supportedBlocks =  Vec.new<BlockType>();
-            archives = Map.new<Principal, TransactionRange>();
+            archives = Map.new<Principal, T.TransactionRange>();
             //ledgerCanister = caller;
             constants = {
                 archiveProperties = switch(args){
@@ -336,7 +336,7 @@ module {
 
                 Debug.print("Have an archive");
 
-                ignore Map.put<Principal, TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
+                ignore Map.put<Principal, T.TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
                 Debug.print("c5");
                 ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
             } else{ 
@@ -524,7 +524,7 @@ module {
         localLedgerSize = state.history.len(); //ILDE: Vec.size(state.ledger);
         lastIndex = state.lastIndex;
         firstIndex = state.firstIndex;
-        archives = Iter.toArray(Map.entries<Principal, TransactionRange>(state.archives));
+        archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(state.archives));
         ledgerCanister = state.canister;
         supportedBlocks = Iter.toArray<BlockType>(Vec.vals(state.supportedBlocks));
         bCleaning = state.bCleaning;
@@ -636,7 +636,7 @@ module {
         //get the transactions on this canister
         let transactions = Vec.new<T.ServiceBlock>();
         for(thisArg in args.vals()){
-            D.print("setting start " # debug_show(thisArg.start + thisArg.length, state.firstIndex));
+            Debug.print("setting start " # debug_show(thisArg.start + thisArg.length, state.firstIndex));
             
             let start = if(thisArg.start + thisArg.length > state.firstIndex){
                 Debug.print("setting start " # debug_show(thisArg.start + thisArg.length, state.firstIndex));
@@ -648,7 +648,7 @@ module {
                 if(thisArg.start >= (state.firstIndex)){
                     thisArg.start;//ILDE:"thisArg.start is already the index in our sliding window" Nat.sub(thisArg.start, (state.firstIndex));
                 } else {
-                    D.trap("last index must be larger than requested start plus one");
+                    Debug.trap("last index must be larger than requested start plus one");
                 };
             };
 
@@ -683,7 +683,7 @@ module {
       //get any relevant archives
       let archives = Map.new<Principal, (Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)>();
 
-      for(thisArgs in args.vals()){//<-----
+      for(thisArgs in args.vals()){
         if(thisArgs.start < state.firstIndex){
           
           Debug.print("archive settings are " # debug_show(Iter.toArray(Map.entries(state.archives))));
@@ -735,7 +735,7 @@ module {
         log_length = ledger_length;
         certificate = CertifiedData.getCertificate(); //will be null in update calls
         blocks = Vec.toArray(transactions);
-        archived_blocks = Iter.toArray<T.ArchivedTransactionResponse>(Iter.map< (Vec.Vector<TransactionRange>, T.GetTransactionsFn), T.ArchivedTransactionResponse>(Map.vals(archives), func(x :(Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)):  T.ArchivedTransactionResponse{
+        archived_blocks = Iter.toArray<T.ArchivedTransactionResponse>(Iter.map< (Vec.Vector<T.TransactionRange>, T.GetTransactionsFn), T.ArchivedTransactionResponse>(Map.vals(archives), func(x :(Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)):  T.ArchivedTransactionResponse{
           {
             args = Vec.toArray(x.0);
             callback = x.1;
