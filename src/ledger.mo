@@ -20,6 +20,7 @@ import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
 import Timer "mo:base/Timer";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
+import Iter "mo:base/Iter";
 
 actor Self {
 
@@ -68,43 +69,7 @@ actor Self {
     // So to use Rechain, I think encodeBlock is just identity function, the hashblock is the standard
 
     func encodeBlock(b: T.ActionIlde) : T.BlockIlde {
-        // conersion T.ActionIlde) ---> rechainIlde.BlockIlde
-        // public type ActionIlde = {
-        //     ts: Nat64;
-        //     created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
-        //     memo: ?Blob; //ILDE: I have added after the discussion with V
-        //     caller: Principal;  //ILDE: I have added after the discussion with V 
-        //     fee: ?Nat;
-        //     payload : {
-        //         #burn : {
-        //             amt: Nat;
-        //             from: [Blob];
-        //         };
-        //         #transfer : {
-        //             to : [Blob];
-        //             from : [Blob];
-        //             amt : Nat;
-        //         };
-        //         #transfer_from : {
-        //             to : [Blob];
-        //             from : [Blob];
-        //             amt : Nat;
-        //         };
-        //         #mint : {
-        //             to : [Blob];
-        //             amt : Nat;
-        //         };
-        //     };
-        // };
 
-        //  public type BlockIlde = { 
-        //     #Blob : Blob; 
-        //     #Text : Text; 
-        //     #Nat : Nat;
-        //     #Int : Int;
-        //     #Array : [BlockIlde]; 
-        //     #Map : [(Text, BlockIlde)]; 
-        // };
         let trx = Vec.new<(Text, T.BlockIlde)>();
         // ts: Nat64;
         Vec.add(trx, ("ts", #Nat(Nat64.toNat(b.ts))));
@@ -279,6 +244,7 @@ actor Self {
         //     case (#Ok(pp)) pp;
         //     case (_) 0;
         // };
+
         let c = add_record(mymint);
         //Debug.print("History size before:"#Nat.toText(a));
         let b = add_record(myin);
@@ -293,8 +259,26 @@ actor Self {
     };
     
     public func test3(): async (Nat) {
-
-        Debug.print("cycles:" # debug_show(ExperimentalCycles.balance() ));
+        let mymint: T.ActionIlde = {
+            ts = 3;
+            created_at_time = null;
+            fee = null;
+            memo = null; 
+            caller = let principal = Principal.fromText("un4fu-tqaaa-aaaab-qadjq-cai"); 
+            payload = #mint({
+                    amt=20000;
+                    to=[("xuymj-7rdp2-s2yjx-efliz-piklp-hauai-2o5rs-gcfe4-4xay4-vzyfm-xqe":Blob),("0" : Blob)];
+                });
+        };
+        let numTx:Nat = 100;
+        
+        Debug.print("Balance before:" # debug_show(ExperimentalCycles.balance() ));
+        Debug.print("Cycles before:" # debug_show(ExperimentalCycles.available() ));
+        for (i in Iter.range(0,  numTx- 1)) {
+            let c = add_record(mymint);
+            Debug.print(Nat.toText(i));
+        };
+        Debug.print("Balance after:" # debug_show(ExperimentalCycles.balance() ));
         Debug.print("cycles:" # debug_show(ExperimentalCycles.available() ));
         
         0;
@@ -473,40 +457,3 @@ actor Self {
     };
 
 };
-//  public type ActionIlde = {
-//         ts: Nat64;
-//         created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
-//         memo: ?Blob; //ILDE: I have added after the discussion with V
-//         caller: Principal;  //ILDE: I have added after the discussion with V 
-//         fee: ?Nat;
-//         payload : {
-//             #burn : {
-//                 amt: Nat;
-//                 from: [Blob];
-//             };
-//             #transfer : {
-//                 to : [Blob];
-//                 from : [Blob];
-//                 amt : Nat;
-//             };
-//             #transfer_from : {
-//                 to : [Blob];
-//                 from : [Blob];
-//                 amt : Nat;
-//             };
-//             #mint : {
-//                 to : [Blob];
-//                 amt : Nat;
-//             };
-//         };
-
-//   public type TransferArg = {
-//     to : Account;
-//     fee : ?Nat;
-//     memo : ?Blob;
-//     from_subaccount : ?Blob;
-//     created_at_time : ?Nat64;
-//     amount : Nat;
-//   };
-
-// public type Account = { owner : Principal; subaccount : ?Blob };

@@ -140,8 +140,8 @@ module {
                 archiveProperties = switch(args){
                     case(_){
                         {
-                        var maxActiveRecords = 2;//2000;    //ILDE: max size of ledger before archiving (state.history)
-                        var settleToRecords = 1;//1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
+                        var maxActiveRecords = 60;//2000;    //ILDE: max size of ledger before archiving (state.history)
+                        var settleToRecords = 30;//1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
                         var maxRecordsInArchiveInstance = 10_000_000; //ILDE: if archive full, we create a new one
                         var maxArchivePages  = 62500;      //ILDE: ArchiveIlde constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
                         var archiveIndexType = #Stable;
@@ -229,10 +229,9 @@ module {
             if(state.history.len() > state.constants.archiveProperties.maxActiveRecords){
                 switch(state.cleaningTimer){ 
                     case(null){ //only need one active timer
-                        Debug.print(Nat.toText(602));
                         state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);  //<--- IM HERE
                     };
-                    case(_){Debug.print(Nat.toText(603));};
+                    case(_){Debug.print("Time is already set, so we don't create a new one");};
                 };
             };
 
