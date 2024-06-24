@@ -177,18 +177,14 @@ module {
 
         public func dispatch( action: A ) : ({#Ok : BlockId;  #Err: T.ActionError }) {
             //ILDE: The way I serve the reducers does not change
-            Debug.print(Nat.toText(10));
             // Execute reducers
             let reducerResponse = Array.map<ActionReducer<A,T.ActionError>, ReducerResponse<T.ActionError>>(reducers, func (fn) = fn(action));
-            Debug.print(Nat.toText(101));
             // Check if any reducer returned an error and terminate if so
             let hasError = Array.find<ReducerResponse<T.ActionError>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
             switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
-            Debug.print(Nat.toText(102));
             let blockId = state.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
             ignore Array.map<ReducerResponse<T.ActionError>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
-            Debug.print(Nat.toText(103));
             // !!! ILDE:TBD
 
             // 1) translate A (ActionIlde: type from ledger project) to (BlockIlde: ICRC3 standard type defined in this same module)
@@ -200,12 +196,9 @@ module {
             // 1) translate A (ActionIlde: type from ledger project) to (BlockIlde: ICRC3 standard type defined in this same module)
             // "encodeBlock" is responsible for this transformation
             let encodedBlock: T.BlockIlde = encodeBlock(action);
-            Debug.print(Nat.toText(104));
-            // <---IMHERE
             // 2) create new block according to steps 2-4 from ICDev ICRC3 implementation
             // creat enew empty block entry
             let trx = Vec.new<(Text, T.BlockIlde)>();
-            Debug.print(Nat.toText(105));
             // Add phash to empty block (null if not the first block)
             switch(mem.phash){
                 case(null) {};
@@ -213,18 +206,13 @@ module {
                 Vec.add(trx, ("phash", #Blob(val)));
                 };
             };
-            Debug.print(Nat.toText(106));
             // add encoded blockIlde to new block with phash
             Vec.add(trx,("tx", encodedBlock));
-            Debug.print(Nat.toText(107));
             // covert vector to map to make it consistent with BlockIlde type
             let thisTrx = #Map(Vec.toArray(trx));
-            Debug.print(Nat.toText(108));
             // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
             mem.phash := ?hashBlock(thisTrx);//?Blob.fromArray(RepIndy.hash_val(thisTrx));
-            Debug.print(Nat.toText(109));
             // 4) Add new block to ledger/history
-            Debug.print(Nat.toText(1));
             Debug.print("History size before inside:" # Nat.toText(state.history.len()));
             ignore state.history.add(thisTrx);
             //ILDEbegin: One we add the block, we need to increase the lastIndex
@@ -232,15 +220,12 @@ module {
             //ILDEend
             Debug.print("History size after inside:" # Nat.toText(state.history.len()));
 
-
-            //IMHERE<-------
             // code to create new archives
 
             //  1) Check whether is necessary to create a new archive
             //  2) If ne cessary, create timer with a period of 0 seconds to create it
-            // <---HOW TO KNOW IF NECESSARY???
+            
             // if(Vec.size(state.ledger) > state.constants.archiveProperties.maxActiveRecords){
-            Debug.print(Nat.toText(601));
             if(state.history.len() > state.constants.archiveProperties.maxActiveRecords){
                 switch(state.cleaningTimer){ 
                     case(null){ //only need one active timer
@@ -299,16 +284,13 @@ module {
                 Debug.print("Creating a canister");
 
                 if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                    Debug.print("c1");
                     ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
-                    Debug.print("c2");
                 } else{
                     //warning ledger will eventually overload
                     Debug.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
                     state.bCleaning :=false;
                     return;
                 };
-                Debug.print("c3");
                 //commits state and creates archive
                 let newArchive = await archiveIlde.archiveIlde({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
@@ -316,7 +298,6 @@ module {
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = 0;
                 });
-                Debug.print("c4");
                 //set archive controllers calls async
                 //ILDE: note that this method uses the costructor argument "canister" = princiapl of "ledger" canister
                 //ignore //ILDE: since now "update_controllers" returns a possible error in case the ledger canister Principal is not yet set
@@ -324,7 +305,7 @@ module {
                 let myerror = await update_controllers(Principal.fromActor(newArchive));
                 switch (myerror){
                     case(#err(val)){
-                        Debug.print("The ledger canister Principal is not yet. run setset_ledger_canister( canister: Principal ) and continue")
+                        Debug.trap("The ledger canister Principal is not yet. run setset_ledger_canister( canister: Principal ) and continue")
                     };
                     case(_){};
                 };
@@ -337,7 +318,6 @@ module {
                 Debug.print("Have an archive");
 
                 ignore Map.put<Principal, T.TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
-                Debug.print("c5");
                 ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
             } else{ 
                 //check that the last one isn't full;
@@ -388,15 +368,11 @@ module {
          // ILDE: here the archive is created but it is still empty <------------
 
          // ILDE: ie creates an archive instance accessible from this function
-            Debug.print("c6");
             let archive = actor(Principal.toText(archive_detail.0)) : T.ArchiveInterface;
-            Debug.print("c7");
          // ILDE: make sure that the amount of records to be archived is at least > than a constant "settleToRecords"
 
         // var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
         //     Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
-            Debug.print("state.history.len():"#Nat.toText(state.history.len()));
-            Debug.print("state.constants.archiveProperties.settleToRecords:"#Nat.toText(state.constants.archiveProperties.settleToRecords));
             var archive_amount = if(state.history.len() > state.constants.archiveProperties.settleToRecords){
                 Nat.sub(state.history.len(), state.constants.archiveProperties.settleToRecords)
             } else {
@@ -447,9 +423,6 @@ module {
                 if(Vec.size(toArchive) == archive_amount) break find;
             };
         
-            Debug.print("toArchive size " # debug_show(Vec.size(toArchive)));
-        
-
          // ILDE: actually adding them
 
         try{
@@ -506,7 +479,6 @@ module {
             state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);
         };
 
-        Debug.print("Checking clean up" # debug_show(stats()));
         return;
     };
 
@@ -539,20 +511,7 @@ module {
           };
         };
       };
-    };
- 
-    // ILDE: this function is executed by the timer to create an archive and store the current ledger
-    // Is very similar to the ICDev implementation:
-    
-    //     public func check_clean_up() : async (){
-    //         //clear the timer
-    //         Debug.print("Cleanins up");
-    //         cleaningTimer := null;
-
-    //         // copied from ICDev ICRC3 implementation
-            
-    //     };
-        
+    };       
 
     /// ILDE: This method is from ICDev ICRC3 implementation
     /// ILDE: This method uses "canister" which is the princiapl of the main ledger actor
@@ -637,15 +596,11 @@ module {
         //get the transactions on this canister
         let transactions = Vec.new<T.ServiceBlock>();
         for(thisArg in args.vals()){
-            Debug.print("setting start " # debug_show(thisArg.start + thisArg.length, state.firstIndex));
             
             let start = if(thisArg.start + thisArg.length > state.firstIndex){
-                Debug.print("setting start " # debug_show(thisArg.start + thisArg.length, state.firstIndex));
                 let start = if(thisArg.start <= state.firstIndex){
-                    Debug.print("setting start " # debug_show(0));
                     state.firstIndex;//ILDE:"our sliding window first valid element is state.firstIndex not 0" 0;
             } else{
-                Debug.print("getting trx" # debug_show(state.lastIndex, state.firstIndex, thisArg));
                 if(thisArg.start >= (state.firstIndex)){
                     thisArg.start;//ILDE:"thisArg.start is already the index in our sliding window" Nat.sub(thisArg.start, (state.firstIndex));
                 } else {
@@ -667,7 +622,6 @@ module {
             //some of the items are on this server
             if(state.history.len() > 0 ){ // ILDE Vec.size(state.ledger) > 0){
                 label search for(thisItem in Iter.range(start, end)){
-                    Debug.print("testing" # debug_show(thisItem));
                     if(thisItem >= state.lastIndex){ //ILDE state.history.len()){ //ILDE Vec.size(state.ledger)){
                         break search;
                     };
@@ -729,7 +683,6 @@ module {
         };
       };
 
-      //<-----------
       Debug.print("returning transactions result" # debug_show(ledger_length, Vec.size(transactions), Map.size(archives)));
       //build the result
       return {
@@ -746,9 +699,71 @@ module {
       }
     };
 
-    };
+    /// ILDE: code from ICDev
+    /// Returns the archive index for the ledger
+    ///
+    /// This function returns the archive index for the ledger.
+    ///
+    /// Arguments:
+    /// - `request`: The archive request
+    ///
+    /// Returns:
+    /// - The archive index
+    public func get_archives(request: T.GetArchivesArgs) : T.GetArchivesResult {
+      
+      //ILDE: I introduce this conversion because the controller canister could be null if not set
+      let canister_aux: Principal = switch(state.canister) {
+        case null {Debug.trap("Archive controller canister must be set before call get_archives");};
+        case (?Principal) Principal;
+      };
+      
+      let results = Vec.new<T.GetArchivesResultItem>();
+       
+      var bFound = switch(request.from){  
+        case(null) true;
+        case(?Principal) false;
+      };
+      if(bFound == true){
+          Vec.add(results,{
+            canister_id = canister_aux; 
+            start = state.firstIndex;
+            end = state.lastIndex;
+          });
+        } else {
+          switch(request.from){
+            case(null) {}; //unreachable
+            case(?val) {
+              if(canister_aux == val){
+                bFound := true;
+              };
+            };
+          };
+        };
 
-    // public query func get_archives(args: T.GetArchivesArgs) : async T.GetArchivesResult{
-    //     return chain_ilde.get_archives(args);
-    // };
+      for(thisItem in Map.entries<Principal, T.TransactionRange>(state.archives)){
+        if(bFound == true){
+          if(thisItem.1.start + thisItem.1.length >= 1){
+            Vec.add(results,{
+              canister_id = (thisItem.0);
+              start = thisItem.1.start;
+              end = Nat.sub(thisItem.1.start + thisItem.1.length, 1);
+            });
+          } else{
+            Debug.trap("found archive with length of 0");
+          };
+        } else {
+          switch(request.from){
+            case(null) {}; //unreachable
+            case(?val) {
+              if(thisItem.0 == val){
+                bFound := true;
+              };
+            };
+          };
+        };
+      };
+
+      return Vec.toArray(results);
+    };
+  };
 };
