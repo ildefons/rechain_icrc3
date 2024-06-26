@@ -270,13 +270,13 @@ actor Self {
                     to=[("xuymj-7rdp2-s2yjx-efliz-piklp-hauai-2o5rs-gcfe4-4xay4-vzyfm-xqe":Blob),("0" : Blob)];
                 });
         };
-        let numTx:Nat = 100;
+        let numTx:Nat = 60;
         
         Debug.print("Balance before:" # debug_show(ExperimentalCycles.balance() ));
         Debug.print("Cycles before:" # debug_show(ExperimentalCycles.available() ));
         for (i in Iter.range(0,  numTx- 1)) {
             let c = add_record(mymint);
-            Debug.print(Nat.toText(i));
+            //Debug.print(Nat.toText(i));
         };
         Debug.print("Balance after:" # debug_show(ExperimentalCycles.balance() ));
         Debug.print("cycles:" # debug_show(ExperimentalCycles.available() ));
@@ -305,7 +305,7 @@ actor Self {
                                                             // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
         addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
         hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
-        reducers = [balancesIlde.reducer];//[dedupIlde.reducer, balancesIlde.reducer];      //<-----REDO
+        reducers = [balancesIlde.reducer, dedupIlde.reducer];//, balancesIlde.reducer];      //<-----REDO
     });
     
 
@@ -320,7 +320,7 @@ actor Self {
         //add block to ledger
         switch (ret) {
             case (#Ok(p)) {
-                Debug.print("Ok");
+                //Debug.print("Ok");
                 //return p;
             };
             case (#Err(p)) {

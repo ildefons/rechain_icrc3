@@ -140,9 +140,9 @@ module {
                 archiveProperties = switch(args){
                     case(_){
                         {
-                        var maxActiveRecords = 60;//2000;    //ILDE: max size of ledger before archiving (state.history)
+                        var maxActiveRecords = 100;//2000;    //ILDE: max size of ledger before archiving (state.history)
                         var settleToRecords = 30;//1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
-                        var maxRecordsInArchiveInstance = 10_000_000; //ILDE: if archive full, we create a new one
+                        var maxRecordsInArchiveInstance = 120;//10_000_000;    //ILDE: if archive full, we create a new one
                         var maxArchivePages  = 62500;      //ILDE: ArchiveIlde constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
                         var archiveIndexType = #Stable;
                         var maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
@@ -213,12 +213,12 @@ module {
             // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
             mem.phash := ?hashBlock(thisTrx);//?Blob.fromArray(RepIndy.hash_val(thisTrx));
             // 4) Add new block to ledger/history
-            Debug.print("History size before inside:" # Nat.toText(state.history.len()));
+            //Debug.print("History size before inside:" # Nat.toText(state.history.len()));
             ignore state.history.add(thisTrx);
             //ILDEbegin: One we add the block, we need to increase the lastIndex
             state.lastIndex := state.lastIndex + 1;
             //ILDEend
-            Debug.print("History size after inside:" # Nat.toText(state.history.len()));
+            //Debug.print("History size after inside:" # Nat.toText(state.history.len()));
 
             // code to create new archives
 
@@ -229,9 +229,12 @@ module {
             if(state.history.len() > state.constants.archiveProperties.maxActiveRecords){
                 switch(state.cleaningTimer){ 
                     case(null){ //only need one active timer
+                        Debug.print("starting time because len: " # Nat.toText(state.history.len()));
                         state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);  //<--- IM HERE
                     };
-                    case(_){Debug.print("Time is already set, so we don't create a new one");};
+                    case(_){
+                        //Debug.print("Time is already set, so we don't create a new one");
+                    };
                 };
             };
 
@@ -252,7 +255,7 @@ module {
 
         //clear the timer
             state.cleaningTimer := null;
-            Debug.print("Checking clean up Ilde");
+            //Debug.print("Checking clean up Ilde");
             
         
         //ensure only one cleaning job is running
@@ -261,10 +264,10 @@ module {
                 Debug.print("state.bCleaning");
                 return; //only one cleaning at a time;
             };
-            Debug.print("Not currently Cleaning");
+            //Debug.print("Not currently Cleaning");
         
         //don't clean if not necessary
-            Debug.print("history.len(): "# Nat.toText(state.history.len()));
+            //Debug.print("history.len(): "# Nat.toText(state.history.len()));
             //if(Vec.size(state.ledger) < state.constants.archiveProperties.maxActiveRecords) return;
             if(state.history.len() < state.constants.archiveProperties.maxActiveRecords) return;
 
@@ -274,8 +277,8 @@ module {
         
         //cleaning
 
-            Debug.print("Now we are cleaning");
-            Debug.print("Map.size(state.archives): "# Nat.toText(Map.size(state.archives)));
+            //Debug.print("Now we are cleaning");
+            //Debug.print("Map.size(state.archives): "# Nat.toText(Map.size(state.archives)));
 
             let (archive_detail, available_capacity) = if(Map.size(state.archives) == 0){ //ILDE: if first archive canister
                 //no archive exists - create a new canister
@@ -287,16 +290,18 @@ module {
                 } else{
                     //warning ledger will eventually overload
                     Debug.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
-                    state.bCleaning :=false;
+                    state.bCleaning := false;
                     return;
                 };
                 //commits state and creates archive
+                Debug.print("aa1");
                 let newArchive = await archiveIlde.archiveIlde({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = #Stable;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = 0;
-                });
+                }); 
+                Debug.print("aa2");
                 //set archive controllers calls async
                 //ILDE: note that this method uses the costructor argument "canister" = princiapl of "ledger" canister
                 //ignore //ILDE: since now "update_controllers" returns a possible error in case the ledger canister Principal is not yet set
@@ -304,7 +309,10 @@ module {
                 let myerror = await update_controllers(Principal.fromActor(newArchive));
                 switch (myerror){
                     case(#err(val)){
-                        Debug.trap("The ledger canister Principal is not yet. run setset_ledger_canister( canister: Principal ) and continue")
+                        Debug.print("aa3");
+                        Debug.print("The ledger canister Principal is not yet. run setset_ledger_canister( canister: Principal ) and continue");
+                        state.bCleaning := false;
+                        return;
                     };
                     case(_){};
                 };
@@ -314,7 +322,7 @@ module {
                     length = 0;
                 };
 
-                Debug.print("Have an archive");
+                //Debug.print("Have an archive");
 
                 ignore Map.put<Principal, T.TransactionRange>(state.archives, Map.phash, Principal.fromActor(newArchive),newItem);
                 ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
@@ -325,7 +333,7 @@ module {
                     case(null) {Debug.trap("state.archives unreachable")}; //unreachable;
                     case(?val) val;
                 };
-                
+                Debug.print("else");
                 if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
                     Debug.print("Need a new canister");
                     
@@ -333,7 +341,7 @@ module {
                         ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
                     } else{
                         //warning ledger will eventually overload
-                        state.bCleaning :=false;
+                        state.bCleaning := false;
                         return;
                     };
 
@@ -365,13 +373,16 @@ module {
             };
         
          // ILDE: here the archive is created but it is still empty <------------
-
+            Debug.print("b1");
          // ILDE: ie creates an archive instance accessible from this function
             let archive = actor(Principal.toText(archive_detail.0)) : T.ArchiveInterface;
          // ILDE: make sure that the amount of records to be archived is at least > than a constant "settleToRecords"
 
         // var archive_amount = if(Vec.size(state.ledger) > state.constants.archiveProperties.settleToRecords){
         //     Nat.sub(Vec.size(state.ledger), state.constants.archiveProperties.settleToRecords)
+
+            Debug.print("b2,"#Nat.toText(state.history.len())#","#Nat.toText(state.constants.archiveProperties.settleToRecords));
+
             var archive_amount = if(state.history.len() > state.constants.archiveProperties.settleToRecords){
                 Nat.sub(state.history.len(), state.constants.archiveProperties.settleToRecords)
             } else {
@@ -396,7 +407,7 @@ module {
                 archive_amount := state.constants.archiveProperties.maxRecordsToArchive;
             };
 
-            Debug.print("amount to archive updated to " # debug_show(archive_amount));
+            //Debug.print("amount to archive updated to " # debug_show(archive_amount));
 
          // ILDE: "Transaction" is the old "Value" type which now is "BlockIlde" 
          //       so, I had to create: "public type Transaction = T.IldeBlock;" and import ".\types" of rechainIlde 
@@ -431,7 +442,7 @@ module {
                 case(#Full(stats)) stats;            //ILDE: full is not an error
                 case(#err(_)){
                     //do nothing...it failed;
-                    state.bCleaning :=false;         //ILDE: if error, we can desactivate bCleaning (set to True in the begining) and return (WHY!!!???)
+                    state.bCleaning := false;         //ILDE: if error, we can desactivate bCleaning (set to True in the begining) and return (WHY!!!???)
                     return;
                 };
             };
@@ -472,7 +483,7 @@ module {
          // ILDE: bCleaning :=false; to allow other timers to act
          //       check bRecallAtEnd=True to make it possible to finish non archived transactions with a new timer
 
-        state.bCleaning :=false;
+        state.bCleaning := false;
 
         if(bRecallAtEnd){
             state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);
@@ -526,6 +537,7 @@ module {
             case (?obj) {obj};
             case (_) { return #err(0) };
         };
+        // <---------ILDE: do that V: ` let ?canister = state.canister else return #err(0)`
         switch(state.constants.archiveProperties.archiveControllers){
             case(?val){
                 let final_list = switch(val){

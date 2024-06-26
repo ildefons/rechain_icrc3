@@ -26,7 +26,7 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
 
   //     public type InitArgs = T.Current.ArchiveInitArgs;
   public type InitArgs = T.ArchiveInitArgs;
-
+ 
   //     public type AddTransactionsResponse = T.Current.AddTransactionsResponse;
   public type AddTransactionsResponse = T.AddTransactionsResponse;
 
@@ -34,18 +34,18 @@ shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.Arch
   public type TransactionRange = T.TransactionRange;
 
   stable var args = _args;
-
+ 
   stable var memstore = SW.init({
       maxRecords = args.maxRecords;
       indexType = args.indexType;
       maxPages = 62500;
   });
-
+ 
   let sw = SW.StableWriteOnly(?memstore);
 
   public shared ({ caller }) func append_transactions(txs : [Transaction]) : async AddTransactionsResponse {
 
-    Debug.print("adding transactions to archive" # debug_show(txs));
+    Debug.print("adding transactions to archive" # debug_show(txs.size()));
 
     if (caller != ledger_canister_id) {
         return #err("Unauthorized Access: Only the ledger canister can access this archive canister");
