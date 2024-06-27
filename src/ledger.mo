@@ -281,6 +281,8 @@ actor Self {
         Debug.print("Balance after:" # debug_show(ExperimentalCycles.balance() ));
         Debug.print("cycles:" # debug_show(ExperimentalCycles.available() ));
         
+        chain_ilde.print_archives();
+
         0;
     };
 

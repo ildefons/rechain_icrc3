@@ -129,11 +129,12 @@ module {
             var lastIndex = 0;
             var firstIndex = 0;
             var history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
-            var ledger : Vec.Vector<Transaction> = Vec.new<Transaction>();
+            var phash: ?Blob = mem.phash;
+            var ledger : Vec.Vector<Transaction> = Vec.new<Transaction>(); //ILDE: not used
             var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
             var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
-            var latest_hash = null;
-            supportedBlocks =  Vec.new<BlockType>();
+            var latest_hash = null; //ILDE: not used because I am using "phash" above 
+            supportedBlocks =  Vec.new<BlockType>(); //ILDE: not used
             archives = Map.new<Principal, T.TransactionRange>();
             //ledgerCanister = caller;
             constants = {
@@ -170,7 +171,10 @@ module {
         private let ic : T.IC = actor "aaaaa-aa";
 
         //let history = SWB.SlidingWindowBuffer<T.BlockIlde>(mem.history);
-
+        public func print_archives() : () {
+            Debug.print(debug_show(state.archives));
+        };
+        
         public func set_ledger_canister( canister: Principal ) : () {
             state.canister := ?canister;
         };
@@ -200,7 +204,7 @@ module {
             // creat enew empty block entry
             let trx = Vec.new<(Text, T.BlockIlde)>();
             // Add phash to empty block (null if not the first block)
-            switch(mem.phash){
+            switch(state.phash){
                 case(null) {};
                 case(?val){
                 Vec.add(trx, ("phash", #Blob(val)));
@@ -211,7 +215,7 @@ module {
             // covert vector to map to make it consistent with BlockIlde type
             let thisTrx = #Map(Vec.toArray(trx));
             // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
-            mem.phash := ?hashBlock(thisTrx);//?Blob.fromArray(RepIndy.hash_val(thisTrx));
+            state.phash := ?hashBlock(thisTrx);//?Blob.fromArray(RepIndy.hash_val(thisTrx));
             // 4) Add new block to ledger/history
             //Debug.print("History size before inside:" # Nat.toText(state.history.len()));
             ignore state.history.add(thisTrx);
@@ -239,10 +243,10 @@ module {
             };
 
 
-            // let fblock = addPhash(action, mem.phash);
+            // let fblock = addPhash(action, state.phash);
             // let encodedBlock = encodeBlock(fblock);
             // ignore history.add(encodedBlock);
-            // mem.phash := hashBlock(encodedBlock);
+            // state.phash := hashBlock(encodedBlock);
 
             #Ok(blockId);
         };
