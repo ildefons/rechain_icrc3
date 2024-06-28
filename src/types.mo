@@ -152,7 +152,7 @@ module {
         lastIndex: Nat;
         firstIndex: Nat;
         archives: [(Principal, TransactionRange)];
-        supportedBlocks: [BlockType];
+        //supportedBlocks: [BlockType]; //ILDE: not used
         ledgerCanister : ?Principal;
         bCleaning : Bool;
     

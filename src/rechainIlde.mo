@@ -120,7 +120,7 @@ module {
             var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
             var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
             // var latest_hash = null; //ILDE: not used because I am using "phash" above 
-            supportedBlocks =  Vec.new<BlockType>(); //ILDE: not used
+            // supportedBlocks =  Vec.new<BlockType>(); //ILDE: not used
             // archives = Map.new<Principal, T.TransactionRange>();
             //ledgerCanister = caller;
             constants = {
@@ -496,7 +496,7 @@ module {
         firstIndex = mem.firstIndex;
         archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
         ledgerCanister = mem.canister;
-        supportedBlocks = Iter.toArray<BlockType>(Vec.vals(state.supportedBlocks));
+        //supportedBlocks = Iter.toArray<BlockType>(Vec.vals(state.supportedBlocks)); //ILDE: not used
         bCleaning = state.bCleaning;
         constants = {
           archiveProperties = {
