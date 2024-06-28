@@ -33,6 +33,7 @@ module {
         var phash : ?Blob;   // ILDE: I allow to be null in case of first block
         var lastIndex : Nat;
         var firstIndex : Nat;
+        var canister: ?Principal;
         archives : Map.Map<Principal, T.TransactionRange>;
     };
     public func MemIlde() : MemIlde {
@@ -41,6 +42,7 @@ module {
             var phash = null; //ILDE: before Blob.fromArray([0]);
             var lastIndex = 0; //ILDE
             var firstIndex = 0; //ILDE
+            var canister = null; //ILDE
             archives = Map.new<Principal, T.TransactionRange>(); //ILDE
         }
     };
@@ -159,9 +161,9 @@ module {
             Debug.print(debug_show(mem.archives));
         };
         
-        public func set_ledger_canister( canister: Principal ) : () {
-            state.canister := ?canister;
-        };
+        // public func set_ledger_canister( canister: Principal ) : () {
+        //     state.canister := ?canister;
+        // };
 
         public func dispatch( action: A ) : ({#Ok : BlockId;  #Err: T.ActionError }) {
             //ILDE: The way I serve the reducers does not change
@@ -324,7 +326,6 @@ module {
                 Debug.print("else");
                 if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
                     Debug.print("Need a new canister");
-                    
                     if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
                         ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
                     } else{
@@ -332,7 +333,6 @@ module {
                         state.bCleaning := false;
                         return;
                     };
-
                     let newArchive = await archiveIlde.archiveIlde({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = #Stable;
@@ -495,7 +495,7 @@ module {
         lastIndex = mem.lastIndex;
         firstIndex = mem.firstIndex;
         archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
-        ledgerCanister = state.canister;
+        ledgerCanister = mem.canister;
         supportedBlocks = Iter.toArray<BlockType>(Vec.vals(state.supportedBlocks));
         bCleaning = state.bCleaning;
         constants = {
@@ -521,7 +521,7 @@ module {
     /// Arguments:
     /// - `canisterId`: The canister ID
     private func update_controllers(canisterId : Principal) : async (T.UpdatecontrollerResponse){ //<---HERE
-        let ?canister = state.canister else return #err(0);
+        let ?canister = mem.canister else return #err(0);
         
         switch(state.constants.archiveProperties.archiveControllers){
             case(?val){
@@ -708,7 +708,7 @@ module {
     public func get_archives(request: T.GetArchivesArgs) : T.GetArchivesResult {
       
       //ILDE: I introduce this conversion because the controller canister could be null if not set
-      let canister_aux: Principal = switch(state.canister) {
+      let canister_aux: Principal = switch(mem.canister) {
         case null {Debug.trap("Archive controller canister must be set before call get_archives");};
         case (?Principal) Principal;
       };

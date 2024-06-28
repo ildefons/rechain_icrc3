@@ -52,7 +52,7 @@ actor Self {
 
     // -- Chain
 
-    let chain_mem_ilde = rechainIlde.MemIlde();
+    stable let chain_mem_ilde = rechainIlde.MemIlde();
 
 
     // below methods are used to create block entries
@@ -192,7 +192,7 @@ actor Self {
     public shared(msg) func test1(): async T.BlockIlde {
 
         // ILDE: I need to set this manually 
-        chain_ilde.set_ledger_canister(Principal.fromActor(Self));
+        //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
 
         let myin: T.ActionIlde = {
             ts = 3;
@@ -212,7 +212,7 @@ actor Self {
         Debug.print("cycles:" # debug_show(ExperimentalCycles.balance() ));
 
         // ILDE: I need to set this manually 
-        chain_ilde.set_ledger_canister(Principal.fromActor(Self));
+        //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
 
         let mymint: T.ActionIlde = {
             ts = 3;
@@ -312,7 +312,8 @@ actor Self {
     
 
     public shared(msg) func set_ledger_canister(): () {
-        chain_ilde.set_ledger_canister(Principal.fromActor(Self));
+        chain_mem_ilde.canister := ?Principal.fromActor(Self);
+        //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
     };
 
     public shared(msg) func add_record(x: T.ActionIlde): () {
