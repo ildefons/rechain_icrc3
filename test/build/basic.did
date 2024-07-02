@@ -1,0 +1,4 @@
+type anon_class_13_1 = 
+ service {
+ };
+service : (record {ledgerId: principal;}) -> anon_class_13_1
