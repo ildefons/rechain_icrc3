@@ -13,6 +13,10 @@
 actor class({ledgerId: Principal}) = this {
 
 
+    public func test() : async Nat { 
+        return 5;
+    }
+
     // private func test_subaccount(n:Nat64) : ?Blob {
     //     ?Blob.fromArray(Iter.toArray(I.pad<Nat8>( Iter.fromArray(ENat64(n)), 32, 0 : Nat8)));
     // };
