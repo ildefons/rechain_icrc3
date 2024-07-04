@@ -1,6 +1,6 @@
 # Testing
 
-Make sure you run at least node version 21.4
+Make sure you run at least node version 21.4 (`npm install 21.4`)
 
 1) Requirements `didc` , `mocv` and `apt-get install parallel`
 ```
