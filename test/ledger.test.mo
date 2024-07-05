@@ -8,10 +8,10 @@ import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 //import Deduplication "./reducers/deduplication";
-import DeduplicationIlde "./ledger/reducers/deduplicationIlde";
+import Deduplication "./ledger/reducers/deduplication";
 import T "./ledger/types";
 //import Balances "reducers/balances";
-import BalancesIlde "./ledger/reducers/balancesIlde";
+import Balances "./ledger/reducers/balances";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
 import rechainIlde "../src/rechainIlde";
@@ -36,18 +36,18 @@ actor Self {
     };
 
     // -- Reducer : Balances
-    stable let balances_ilde_mem = BalancesIlde.Mem();
-    let balancesIlde = BalancesIlde.BalancesIlde({
+    stable let balances_mem = Balances.Mem();
+    let balances = Balances.Balances({
         config;
-        mem = balances_ilde_mem;
+        mem = balances_mem;
     });
 
     // -- Reducer : Deduplication
 
-    stable let dedup_ilde_mem = DeduplicationIlde.Mem();
-    let dedupIlde = DeduplicationIlde.DeduplicationIlde({
+    stable let dedup_mem = Deduplication.Mem();
+    let dedup = Deduplication.Deduplication({
         config;
-        mem = dedup_ilde_mem;
+        mem = dedup_mem;
     });
 
     // -- Chain
@@ -307,7 +307,7 @@ actor Self {
                                                             // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
         addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
         hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
-        reducers = [balancesIlde.reducer, dedupIlde.reducer];//, balancesIlde.reducer];      //<-----REDO
+        reducers = [balances.reducer, dedup.reducer];//, balancesIlde.reducer];      //<-----REDO
     });
     
 
@@ -341,7 +341,7 @@ actor Self {
     };
 
     public query func icrc1_balance_of(acc: ICRC.Account) : async Nat {
-        balancesIlde.get(acc)
+        balances.get(acc)
     };
 
     // ILDE: TO BE DONE
