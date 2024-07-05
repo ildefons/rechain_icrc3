@@ -6,7 +6,7 @@ import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
 import Blob "mo:base/Blob";
-import Chain "mo:rechain";
+import Chain "../../../src/rechainIlde";
 import U "../utils";
 import ICRC "../icrc";
 import T "../types";

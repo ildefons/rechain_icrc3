@@ -1,21 +1,15 @@
 import Map "mo:map/Map";
 import Principal "mo:base/Principal";
-import ICRC "./icrc";
-import U "./utils";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
-//import Chain "mo:rechain";
-//import Deduplication "./reducers/deduplication";
-//import DeduplicationIlde "./reducers/deduplicationIlde";
+
 import T "./types";
-//import Balances "reducers/balances";
-//import BalancesIlde "reducers/balancesIlde";
+
 import Sha256 "mo:sha2/Sha256";
 
-//ILDE
 import Vec "mo:vector";
 import RepIndy "mo:rep-indy-hash";
 import Text "mo:base/Text";
@@ -23,7 +17,7 @@ import Timer "mo:base/Timer";
 import archiveIlde "./archiveIlde";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import CertifiedData "mo:base/CertifiedData";
-import Set "mo:map9/Set";
+import Set "mo:map/Set";
 import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
 
@@ -46,6 +40,12 @@ module {
             archives = Map.new<Principal, T.TransactionRange>(); //ILDE
         }
     };
+    public type BlockIlde = T.BlockIlde;
+    public type GetBlocksArgs = T.GetBlocksArgs;
+    public type GetBlocksResult = T.GetBlocksResult;
+    public type GetArchivesArgs = T.GetArchivesArgs;
+    public type GetArchivesResult = T.GetArchivesResult;
+    
     public type ActionReducer<A,B> = (A) -> ReducerResponse<B>;
     public type BlockId = Nat;
     public type ReducerResponse<E> = {
@@ -66,13 +66,8 @@ module {
         length : Nat;
     };
 
-    public type BlockType = {
-        block_type : Text;
-        url : Text;
-    };
     public type Transaction = T.BlockIlde;
     public type AddTransactionsResponse = T.AddTransactionsResponse;
-    public type TransactionsResult = T.TransactionsResult;
 
     /// ILDE: copied from ICDev ICRC3  Types implementation 
     /// The Interface for the Archive canister
@@ -94,7 +89,7 @@ module {
     //   /// > The capacity of the archive canister is 32GB
     //   remaining_capacity : shared query () -> async Nat;
     // };
-    public class ChainIlde<A,E,B>({
+    public class ChainIlde<A,E>({
         mem: MemIlde;
         //mem: Mem<A>;
         encodeBlock: (A) -> T.BlockIlde;   //ILDE: I changed B--->A 
@@ -102,7 +97,7 @@ module {
         addPhash: (T.BlockIlde, phash: Blob) -> T.BlockIlde;
         //hashBlock: (Block) -> Blob;
         hashBlock: (T.BlockIlde) -> Blob;
-        reducers : [ActionReducer<A,T.ActionError>];
+        reducers : [ActionReducer<A,E>];
         args: ?T.InitArgs;
         }) {
 
@@ -165,16 +160,16 @@ module {
         //     state.canister := ?canister;
         // };
 
-        public func dispatch( action: A ) : ({#Ok : BlockId;  #Err: T.ActionError }) {
+        public func dispatch( action: A ) : ({#Ok : BlockId;  #Err: E }) {
             //ILDE: The way I serve the reducers does not change
             // Execute reducers
-            let reducerResponse = Array.map<ActionReducer<A,T.ActionError>, ReducerResponse<T.ActionError>>(reducers, func (fn) = fn(action));
+            let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
             // Check if any reducer returned an error and terminate if so
-            let hasError = Array.find<ReducerResponse<T.ActionError>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
+            let hasError = Array.find<ReducerResponse<E>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
             switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
             let blockId = mem.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
-            ignore Array.map<ReducerResponse<T.ActionError>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
+            ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
             // !!! ILDE:TBD
 
             // 1) translate A (ActionIlde: type from ledger project) to (BlockIlde: ICRC3 standard type defined in this same module)

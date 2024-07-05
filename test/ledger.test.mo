@@ -1,20 +1,20 @@
 import Map "mo:map/Map";
 import Principal "mo:base/Principal";
-import ICRC "./icrc";
-import U "./utils";
+import ICRC "./ledger/icrc";
+import U "./ledger/utils";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
 import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 //import Deduplication "./reducers/deduplication";
-import DeduplicationIlde "./reducers/deduplicationIlde";
-import T "./types";
+import DeduplicationIlde "./ledger/reducers/deduplicationIlde";
+import T "./ledger/types";
 //import Balances "reducers/balances";
-import BalancesIlde "reducers/balancesIlde";
+import BalancesIlde "./ledger/reducers/balancesIlde";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
-import rechainIlde "./rechainIlde";
+import rechainIlde "../src/rechainIlde";
 import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
@@ -68,9 +68,9 @@ actor Self {
 
     // So to use Rechain, I think encodeBlock is just identity function, the hashblock is the standard
 
-    func encodeBlock(b: T.ActionIlde) : T.BlockIlde {
+    func encodeBlock(b: T.ActionIlde) : rechainIlde.BlockIlde {
 
-        let trx = Vec.new<(Text, T.BlockIlde)>();
+        let trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
         // ts: Nat64;
         Vec.add(trx, ("ts", #Nat(Nat64.toNat(b.ts))));
         // created_at_time: ?Nat64; 
@@ -113,10 +113,10 @@ actor Self {
         // create a new "payload_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();"
         let payload_trx = switch (b.payload) {
             case (#burn(data)) {
-                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<T.BlockIlde>();
+                let trx_from = Vec.new<rechainIlde.BlockIlde>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
@@ -127,16 +127,16 @@ actor Self {
                 inner_trx_array;     
             };
             case (#transfer(data)) {
-                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<T.BlockIlde>();
+                let trx_from = Vec.new<rechainIlde.BlockIlde>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
                 let trx_from_array = Vec.toArray(trx_from);
                 Vec.add(inner_trx, ("from", #Array(trx_from_array)));  
-                let trx_to = Vec.new<T.BlockIlde>();
+                let trx_to = Vec.new<rechainIlde.BlockIlde>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -147,10 +147,10 @@ actor Self {
                 inner_trx_array; 
             };
             case (#mint(data)) {
-                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_to = Vec.new<T.BlockIlde>();
+                let trx_to = Vec.new<rechainIlde.BlockIlde>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -161,16 +161,16 @@ actor Self {
                 inner_trx_array; 
             };
             case (#transfer_from(data)) {
-                let inner_trx = Vec.new<(Text, T.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<T.BlockIlde>();
+                let trx_from = Vec.new<rechainIlde.BlockIlde>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
                 let trx_from_array = Vec.toArray(trx_from);
                 Vec.add(inner_trx, ("from", #Array(trx_from_array)));  
-                let trx_to = Vec.new<T.BlockIlde>();
+                let trx_to = Vec.new<rechainIlde.BlockIlde>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -185,11 +185,11 @@ actor Self {
         #Map(Vec.toArray(trx));
     };
 
-    func hashBlock(b: T.BlockIlde) : Blob {
+    func hashBlock(b: rechainIlde.BlockIlde) : Blob {
         Blob.fromArray(RepIndy.hash_val(b));
     };
 
-    public shared(msg) func test1(): async T.BlockIlde {
+    public shared(msg) func test1(): async rechainIlde.BlockIlde {
 
         // ILDE: I need to set this manually 
         //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
@@ -287,15 +287,15 @@ actor Self {
     };
 
     
-    public query func icrc3_get_blocks(args: T.GetBlocksArgs) : async T.GetBlocksResult{
+    public query func icrc3_get_blocks(args: rechainIlde.GetBlocksArgs) : async rechainIlde.GetBlocksResult{
         return chain_ilde.get_blocks(args);
     };
 
-    public query func icrc3_get_archives(args: T.GetArchivesArgs) : async T.GetArchivesResult{
+    public query func icrc3_get_archives(args: rechainIlde.GetArchivesArgs) : async rechainIlde.GetArchivesResult{
         return chain_ilde.get_archives(args);
     };
 
-    var chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError, T.ActionIldeWithPhash>({ 
+    var chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError>({ 
         args = null;
         mem = chain_mem_ilde;
         encodeBlock = encodeBlock;//func(b: T.ActionIlde) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
@@ -311,7 +311,7 @@ actor Self {
     });
     
 
-    public shared(msg) func set_ledger_canister(): () {
+    public shared(msg) func set_ledger_canister(): async () {
         chain_mem_ilde.canister := ?Principal.fromActor(Self);
         //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
     };
