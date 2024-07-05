@@ -21,7 +21,7 @@ module {
         accounts = Map.new<Blob, Nat>();
     };
 
-    public class BalancesIlde({ mem : Mem; config:T.Config }) {   //<---
+    public class Balances({ mem : Mem; config:T.Config }) {   //<---
 
         public func reducer(action : T.ActionIlde) : Chain.ReducerResponse<T.ActionError> {
 
