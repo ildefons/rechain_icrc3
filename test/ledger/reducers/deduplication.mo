@@ -22,7 +22,7 @@ module {
         }
     };
 
-    public class DeduplicationIlde({mem: Mem; config:T.Config}) {
+    public class Deduplication({mem: Mem; config:T.Config}) {
   
         public func reducer(action: T.ActionIlde) : Chain.ReducerResponse<T.ActionError> {
 
