@@ -52,6 +52,12 @@ describe('Counter', () => {
       expect(r).toBe(5n);
     });
 
+    // it('tests2',  () => {
+    //   let r = can.set_ledger_canister();
+    //   expect(r).toBe(5n);
+    // });
+
+
     async function passTime(n:number) {
     for (let i=0; i<n; i++) {
         await pic.advanceTime(3*1000);
