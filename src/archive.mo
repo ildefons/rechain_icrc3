@@ -6,7 +6,7 @@ import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 
-shared ({ caller = ledger_canister_id }) actor class archiveIlde (_args : T.ArchiveInitArgs) = this {
+shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveInitArgs) = this {
 
 
 //     let debug_channel = {

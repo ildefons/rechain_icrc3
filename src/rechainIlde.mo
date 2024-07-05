@@ -14,7 +14,7 @@ import Vec "mo:vector";
 import RepIndy "mo:rep-indy-hash";
 import Text "mo:base/Text";
 import Timer "mo:base/Timer";
-import archiveIlde "./archiveIlde";
+import Archive "./archive";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import CertifiedData "mo:base/CertifiedData";
 import Set "mo:map/Set";
@@ -125,7 +125,7 @@ module {
                         var maxActiveRecords = 100;//2000;    //ILDE: max size of ledger before archiving (state.history)
                         var settleToRecords = 30;//1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
                         var maxRecordsInArchiveInstance = 120;//10_000_000;    //ILDE: if archive full, we create a new one
-                        var maxArchivePages  = 62500;      //ILDE: ArchiveIlde constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
+                        var maxArchivePages  = 62500;      //ILDE: Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
                         var archiveIndexType = #Stable;
                         var maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
                         var archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
@@ -280,7 +280,7 @@ module {
                 };
                 //commits state and creates archive
                 Debug.print("aa1");
-                let newArchive = await archiveIlde.archiveIlde({
+                let newArchive = await Archive.archive({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = #Stable;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
@@ -328,7 +328,7 @@ module {
                         state.bCleaning := false;
                         return;
                     };
-                    let newArchive = await archiveIlde.archiveIlde({
+                    let newArchive = await Archive.archive({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = #Stable;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
