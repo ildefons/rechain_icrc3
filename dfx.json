@@ -5,6 +5,7 @@
       "type": "motoko"
     }
   },
+
   "defaults": {
     "build": {
       "packtool": "mops sources"
