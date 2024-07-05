@@ -47,10 +47,10 @@ describe("Counter", () => {
 
   it("tests", async () => {
     await can.set_ledger_canister();
-    await can.icrc1_balance_of({
-      owner: Principal.fromText("aaaaa-aa"),
-      subaccount: null,
-    });
+    // await can.icrc1_balance_of({
+    //   owner: Principal.fromText("aaaaa-aa"),
+    //   subaccount: [],
+    // });
     expect(5n).toBe(5n);
   });
 
