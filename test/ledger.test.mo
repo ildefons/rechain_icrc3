@@ -14,7 +14,7 @@ import T "./ledger/types";
 import Balances "./ledger/reducers/balances";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
-import rechainIlde "../src/rechainIlde";
+import rechain "../src/rechain";
 import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
@@ -52,7 +52,7 @@ actor Self {
 
     // -- Chain
 
-    stable let chain_mem_ilde = rechainIlde.MemIlde();
+    stable let chain_mem = rechain.Mem();
 
 
     // below methods are used to create block entries
@@ -68,9 +68,9 @@ actor Self {
 
     // So to use Rechain, I think encodeBlock is just identity function, the hashblock is the standard
 
-    func encodeBlock(b: T.ActionIlde) : rechainIlde.BlockIlde {
+    func encodeBlock(b: T.Action) : rechain.Value {
 
-        let trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+        let trx = Vec.new<(Text, rechain.Value)>();
         // ts: Nat64;
         Vec.add(trx, ("ts", #Nat(Nat64.toNat(b.ts))));
         // created_at_time: ?Nat64; 
@@ -110,13 +110,13 @@ actor Self {
         };
         Vec.add(trx, ("btype", #Text(btype)));
 
-        // create a new "payload_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();"
+        // create a new "payload_trx = Vec.new<(Text, rechain.Value)>();"
         let payload_trx = switch (b.payload) {
             case (#burn(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechain.Value)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<rechainIlde.BlockIlde>();
+                let trx_from = Vec.new<rechain.Value>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
@@ -127,16 +127,16 @@ actor Self {
                 inner_trx_array;     
             };
             case (#transfer(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechain.Value)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<rechainIlde.BlockIlde>();
+                let trx_from = Vec.new<rechain.Value>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
                 let trx_from_array = Vec.toArray(trx_from);
                 Vec.add(inner_trx, ("from", #Array(trx_from_array)));  
-                let trx_to = Vec.new<rechainIlde.BlockIlde>();
+                let trx_to = Vec.new<rechain.Value>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -147,10 +147,10 @@ actor Self {
                 inner_trx_array; 
             };
             case (#mint(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechain.Value)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_to = Vec.new<rechainIlde.BlockIlde>();
+                let trx_to = Vec.new<rechain.Value>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -161,16 +161,16 @@ actor Self {
                 inner_trx_array; 
             };
             case (#transfer_from(data)) {
-                let inner_trx = Vec.new<(Text, rechainIlde.BlockIlde)>();
+                let inner_trx = Vec.new<(Text, rechain.Value)>();
                 let amt: Nat = data.amt;
                 Vec.add(inner_trx, ("amt", #Nat(amt)));
-                let trx_from = Vec.new<rechainIlde.BlockIlde>();
+                let trx_from = Vec.new<rechain.Value>();
                 for(thisItem in data.from.vals()){
                     Vec.add(trx_from,#Blob(thisItem));
                 };
                 let trx_from_array = Vec.toArray(trx_from);
                 Vec.add(inner_trx, ("from", #Array(trx_from_array)));  
-                let trx_to = Vec.new<rechainIlde.BlockIlde>();
+                let trx_to = Vec.new<rechain.Value>();
                 for(thisItem in data.to.vals()){
                     Vec.add(trx_to,#Blob(thisItem));
                 };
@@ -185,16 +185,16 @@ actor Self {
         #Map(Vec.toArray(trx));
     };
 
-    func hashBlock(b: rechainIlde.BlockIlde) : Blob {
+    func hashBlock(b: rechain.Value) : Blob {
         Blob.fromArray(RepIndy.hash_val(b));
     };
 
-    public shared(msg) func test1(): async rechainIlde.BlockIlde {
+    public shared(msg) func test1(): async rechain.Value {
 
         // ILDE: I need to set this manually 
         //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
 
-        let myin: T.ActionIlde = {
+        let myin: T.Action = {
             ts = 3;
             created_at_time = null;
             fee = null;
@@ -214,7 +214,7 @@ actor Self {
         // ILDE: I need to set this manually 
         //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
 
-        let mymint: T.ActionIlde = {
+        let mymint: T.Action = {
             ts = 3;
             created_at_time = null;
             fee = null;
@@ -226,7 +226,7 @@ actor Self {
                 });
         };
 
-        let myin: T.ActionIlde = {
+        let myin: T.Action = {
             ts = 3;
             created_at_time = null;
             fee = null;
@@ -259,7 +259,7 @@ actor Self {
     };
     
     public func test3(): async (Nat) {
-        let mymint: T.ActionIlde = {
+        let mymint: T.Action = {
             ts = 3;
             created_at_time = null;
             fee = null;
@@ -287,18 +287,18 @@ actor Self {
     };
 
     
-    public query func icrc3_get_blocks(args: rechainIlde.GetBlocksArgs) : async rechainIlde.GetBlocksResult{
+    public query func icrc3_get_blocks(args: rechain.GetBlocksArgs) : async rechain.GetBlocksResult{
         return chain_ilde.get_blocks(args);
     };
 
-    public query func icrc3_get_archives(args: rechainIlde.GetArchivesArgs) : async rechainIlde.GetArchivesResult{
+    public query func icrc3_get_archives(args: rechain.GetArchivesArgs) : async rechain.GetArchivesResult{
         return chain_ilde.get_archives(args);
     };
 
-    var chain_ilde = rechainIlde.ChainIlde<T.ActionIlde, T.ActionError>({ 
+    var chain_ilde = rechain.Chain<T.Action, T.ActionError>({ 
         args = null;
-        mem = chain_mem_ilde;
-        encodeBlock = encodeBlock;//func(b: T.ActionIlde) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
+        mem = chain_mem;
+        encodeBlock = encodeBlock;//func(b: T.Action) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
                                                             // action.toGenericValue: I have to write it
                                                             // it converts the action to generic value!!!
                                                             // it converts to the action type to generic "value" type
@@ -312,11 +312,11 @@ actor Self {
     
 
     public shared(msg) func set_ledger_canister(): async () {
-        chain_mem_ilde.canister := ?Principal.fromActor(Self);
+        chain_mem.canister := ?Principal.fromActor(Self);
         //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
     };
 
-    public shared(msg) func add_record(x: T.ActionIlde): () {
+    public shared(msg) func add_record(x: T.Action): () {
         //return icrc3().add_record<system>(x, null);
 
         let ret = chain_ilde.dispatch(x);  //handle error
@@ -355,7 +355,7 @@ actor Self {
     // ----> So I need to convert motoko objects to ICRC3 blocks 
     // ----> It also says that "It also needs archival mechanism that spawns canisters, move blocks to them" (later)
     // . Alternative to ICRC-3 
-    // public query func get_transactions(req: rechainIlde.GetBlocksRequest) : async rechainIlde.GetTransactionsResponse {
+    // public query func get_transactions(req: rechain.GetBlocksRequest) : async rechain.GetTransactionsResponse {
     //     chain_ilde.get_transactions(req);
     // };
 
