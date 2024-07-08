@@ -47,11 +47,12 @@ describe("Counter", () => {
 
   it("tests", async () => {
     await can.set_ledger_canister();
-    // await can.icrc1_balance_of({
-    //   owner: Principal.fromText("aaaaa-aa"),
-    //   subaccount: [],
-    // });
-    expect(5n).toBe(5n);
+    let r = await can.do_mint("un4fu-tqaaa-aaaab-qadjq-cai", //caller_str 
+                              "xuymj-7rdp2-s2yjx-efliz-piklp-hauai-2o5rs-gcfe4-4xay4-vzyfm-xqeto_str", //to_str 
+                              0n, //amt_nat 
+                              0n) //ts_nat
+    expect(r).toBe(0n);
+
   });
 
   async function passTime(n: number) {
