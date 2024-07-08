@@ -5,17 +5,14 @@ import SW "mo:stable-write-only"; // ILDE: I have to add mops.toml
 module {
    
 
-    public type BlockIlde = { 
+    public type Value = { 
         #Blob : Blob; 
         #Text : Text; 
         #Nat : Nat;
         #Int : Int;
-        #Array : [BlockIlde]; 
-        #Map : [(Text, BlockIlde)]; 
+        #Array : [Value]; 
+        #Map : [(Text, Value)]; 
     };
-
-
-
 
     //ILDEbegin
     public type ArchiveInitArgs = {
@@ -42,7 +39,7 @@ module {
         length : Nat;
     };
 
-    public type Transaction = BlockIlde;
+    public type Transaction = Value;
 
 
 
@@ -55,7 +52,7 @@ module {
       maxRecordsToArchive : Nat;
       archiveCycles : Nat;
       archiveControllers : ??[Principal];
-      supportedBlocks : [BlockIlde];
+      supportedBlocks : [Value];
     };
     
     public type canister_settings = {
@@ -104,7 +101,7 @@ module {
         // Total number of transactions in the
         // transaction log
         log_length : Nat;        
-        blocks : [{ id : Nat; block : ?BlockIlde }];
+        blocks : [{ id : Nat; block : ?Value }];
         archived_blocks : [ArchivedTransactionResponse];
     };
     public type GetTransactionsFn = shared query ([TransactionRange]) -> async GetTransactionsResult;
@@ -136,7 +133,7 @@ module {
         end : Nat;
     };
 
-    public type ServiceBlock = { id : Nat; block: ?BlockIlde };
+    public type ServiceBlock = { id : Nat; block: ?Value };
 
     public type TxIndex = Nat;
 

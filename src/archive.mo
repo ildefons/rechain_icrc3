@@ -18,7 +18,7 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveI
   Debug.print("new archive created with the following args" # debug_show(_args));
 
   //     type Transaction = T.Current.Transaction;
-  type Transaction = T.BlockIlde;
+  type Transaction = T.Value;
   type MemoryBlock = {
       offset : Nat64;
       size : Nat;
@@ -106,7 +106,7 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveI
           };
           case(?val){
             Debug.print("found" # debug_show(val));
-            var aux: ?(T.BlockIlde) = ?val;
+            var aux: ?(T.Value) = ?val;
             Vec.add(transactions, {id = tracker; block = ?val});
           };
         };
