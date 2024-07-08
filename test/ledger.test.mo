@@ -21,6 +21,7 @@ import RepIndy "mo:rep-indy-hash";
 import Timer "mo:base/Timer";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Iter "mo:base/Iter";
+import Text "mo:base/Text";
 
 actor Self {
 
@@ -207,9 +208,29 @@ actor Self {
         };
         encodeBlock(myin);        
     };
-    public func test2(): async (Nat) {
 
-        Debug.print("cycles:" # debug_show(ExperimentalCycles.balance() ));
+    /// Base methods for testing
+    public func do_mint(caller_str: Text, to_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat64) {
+
+        let myaction: T.Action = {
+            ts = ts_nat;//3;
+            created_at_time = null;
+            fee = null;
+            memo = null; 
+            caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
+            payload = #mint({
+                    amt=Nat64.toNat(amt_nat);//20000;
+                    //to=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
+                    to=[(Text.encodeUtf8(to_str) : Blob),("0" : Blob)];
+                });
+        };
+
+        let ret = add_record(myaction);
+
+        return ret;
+    };
+
+    public func test2(): async (Nat) {
 
         // ILDE: I need to set this manually 
         //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
@@ -249,11 +270,7 @@ actor Self {
         //Debug.print("History size before:"#Nat.toText(a));
         let b = add_record(myin);
         //Debug.print("History size before:"#Nat.toText(b));
-
-
         //var aux = Timer.setTimer(#seconds(5), check_clean_up); 
-
-
         return 0;
                 
     };
@@ -316,7 +333,7 @@ actor Self {
         //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
     };
 
-    public shared(msg) func add_record(x: T.Action): () {
+    public shared(msg) func add_record(x: T.Action): async (Nat) {
         //return icrc3().add_record<system>(x, null);
 
         let ret = chain_ilde.dispatch(x);  //handle error
@@ -324,12 +341,12 @@ actor Self {
         switch (ret) {
             case (#Ok(p)) {
                 //Debug.print("Ok");
-                //return p;
+                return 0;
             };
             case (#Err(p)) {
                 //<---I MHERE WHY????  Reducer BalcerIlde is giving error
                 Debug.print("Error");
-                //return 0;
+                return 1;
             }
         }; 
     };
