@@ -6,7 +6,7 @@ import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
 import Blob "mo:base/Blob";
-import Chain "../../../src/rechainIlde";
+import Chain "../../../src/rechain";
 import U "../utils";
 import T "../types";
 
@@ -24,7 +24,7 @@ module {
 
     public class Deduplication({mem: Mem; config:T.Config}) {
   
-        public func reducer(action: T.ActionIlde) : Chain.ReducerResponse<T.ActionError> {
+        public func reducer(action: T.Action) : Chain.ReducerResponse<T.ActionError> {
 
             ignore do ? { if (action.ts < action.created_at_time!) return #Err(#CreatedInFuture({ledger_time = action.ts}))};
             ignore do ? { if (action.created_at_time! + config.TX_WINDOW + config.PERMITTED_DRIFT < action.ts) return #Err(#TooOld)};
@@ -37,7 +37,7 @@ module {
                 });
         };
         
-        private func dedupIdentifier(action: T.ActionIlde) : ?Blob {
+        private func dedupIdentifier(action: T.Action) : ?Blob {
             do ? {
                 let memo = action.memo!;
                 let created_at = action.created_at_time!;

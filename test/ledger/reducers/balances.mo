@@ -6,7 +6,7 @@ import Nat "mo:base/Nat";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
 import Blob "mo:base/Blob";
-import Chain "../../../src/rechainIlde";
+import Chain "../../../src/rechain";
 import U "../utils";
 import ICRC "../icrc";
 import T "../types";
@@ -23,12 +23,11 @@ module {
 
     public class Balances({ mem : Mem; config:T.Config }) {   //<---
 
-        public func reducer(action : T.ActionIlde) : Chain.ReducerResponse<T.ActionError> {
+        public func reducer(action : T.Action) : Chain.ReducerResponse<T.ActionError> {
 
             switch(action.payload) {
                 case (#transfer(p)) { // ICRC3 schema: btype = "1xfer"
                     //ILDEb
-                    Debug.print("rb1");
                     let fee = switch (action.fee) {
                         case null 0;
                         case (?Nat) Nat;
@@ -68,22 +67,19 @@ module {
                 case (#burn(p)) {
                     //let ?from_bacc = accountToBlob(p.from) else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
                     //ILDEb
-                    Debug.print("rbburn1");
+                   
                     let from_principal_blob = p.from[0];
-                    Debug.print("rbburn11");
+               
                     let from_subaccount_blob = p.from[1];
-                    Debug.print("rbburn12");
+              
                     let from_principal_principal = Principal.fromBlob(from_principal_blob);
-                    Debug.print("rbburn13");
+                
                     let from_bacc = Principal.toLedgerAccount(from_principal_principal, ?from_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
                     //ILDEe
-                    Debug.print("rbburn14");
+             
                     let bal = get_balance(from_bacc);
-                    Debug.print("rbburn15");
-                    Debug.print(Nat.toText(p.amt));
-                    Debug.print(Nat.toText(bal));
-                    Debug.print(Nat.toText(config.FEE));
+     
                     if (bal < p.amt + config.FEE) return #Err(#BadBurn({ min_burn_amount = config.FEE }));
                     #Ok(
                         func(_) {
