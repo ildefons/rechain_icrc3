@@ -32,7 +32,7 @@ module {
         #mint: Mint;
     };
 
-    public type ActionIlde = {
+    public type Action = {
         ts: Nat64;
         created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
         memo: ?Blob; //ILDE: I have added after the discussion with V
