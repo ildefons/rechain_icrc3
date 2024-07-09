@@ -29,7 +29,7 @@ actor Self {
     let config : T.Config = {
         var TX_WINDOW  = 86400_000_000_000;  // 24 hours in nanoseconds
         var PERMITTED_DRIFT = 60_000_000_000;
-        var FEE = 1_000;
+        var FEE = 0;//1_000; ILDE: I make it 0 to simplify testing
         var MINTING_ACCOUNT = {
             owner = Principal.fromText("aaaaa-aa");
             subaccount = null;
@@ -193,7 +193,7 @@ actor Self {
     public shared(msg) func test1(): async rechain.Value {
 
         // ILDE: I need to set this manually 
-        //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
+        //chain.set_ledger_canister(Principal.fromActor(Self));
 
         let myin: T.Action = {
             ts = 3;
@@ -210,30 +210,64 @@ actor Self {
     };
 
     /// Base methods for testing
-    public func do_mint(caller_str: Text, to_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat64) {
+    // public shared({caller}) func do_mint(caller_str: Text, to_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat) {
+    //     //<---- remove caller_str 
+    //     //<-----Principal.toText()
+    //     let myaction: T.Action = {
+    //         ts = ts_nat;
+    //         created_at_time = null;
+    //         fee = null;
+    //         memo = null; 
+    //         caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
+    //         payload = #mint({
+    //             amt=Nat64.toNat(amt_nat);
+    //             //to=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
+    //             to=[(Text.encodeUtf8(to_str) : Blob),("0" : Blob)];
+    //         });
+    //     };
+    //     let aux = await add_record(myaction);
+    //     return aux;
+    // };
 
-        let myaction: T.Action = {
-            ts = ts_nat;//3;
-            created_at_time = null;
-            fee = null;
-            memo = null; 
-            caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
-            payload = #mint({
-                    amt=Nat64.toNat(amt_nat);//20000;
-                    //to=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
-                    to=[(Text.encodeUtf8(to_str) : Blob),("0" : Blob)];
-                });
-        };
+    // public func do_burn(caller_str: Text, from_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat) {
 
-        let ret = add_record(myaction);
+    //     let myaction: T.Action = {
+    //         ts = ts_nat;
+    //         created_at_time = null;
+    //         fee = null;
+    //         memo = null; 
+    //         caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
+    //         payload = #burn({
+    //             amt=Nat64.toNat(amt_nat);
+    //             from=[(Text.encodeUtf8(from_str) : Blob),("0" : Blob)];
+    //         });
+    //     };
+    //     let aux = await add_record(myaction);
+    //     return aux;
+    // };
+    
+    // public func do_transfer(caller_str: Text, to_str: Text, from_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat) {
 
-        return ret;
-    };
+    //     let myaction: T.Action = {
+    //         ts = ts_nat;
+    //         created_at_time = null;
+    //         fee = null;
+    //         memo = null; 
+    //         caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
+    //         payload = #transfer({
+    //             amt=Nat64.toNat(amt_nat);
+    //             to=[(Text.encodeUtf8(to_str) : Blob),("0" : Blob)];
+    //             from=[(Text.encodeUtf8(from_str) : Blob),("0" : Blob)];
+    //         });
+    //     };
+    //     let aux = await add_record(myaction);
+    //     return aux;
+    // };
 
     public func test2(): async (Nat) {
 
         // ILDE: I need to set this manually 
-        //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
+        //chain.set_ledger_canister(Principal.fromActor(Self));
 
         let mymint: T.Action = {
             ts = 3;
@@ -298,21 +332,21 @@ actor Self {
         Debug.print("Balance after:" # debug_show(ExperimentalCycles.balance() ));
         Debug.print("cycles:" # debug_show(ExperimentalCycles.available() ));
         
-        chain_ilde.print_archives();
+        chain.print_archives();
 
         0;
     };
 
     
     public query func icrc3_get_blocks(args: rechain.GetBlocksArgs) : async rechain.GetBlocksResult{
-        return chain_ilde.get_blocks(args);
+        return chain.get_blocks(args);
     };
 
     public query func icrc3_get_archives(args: rechain.GetArchivesArgs) : async rechain.GetArchivesResult{
-        return chain_ilde.get_archives(args);
+        return chain.get_archives(args);
     };
 
-    var chain_ilde = rechain.Chain<T.Action, T.ActionError>({ 
+    var chain = rechain.Chain<T.Action, T.ActionError>({ 
         args = null;
         mem = chain_mem;
         encodeBlock = encodeBlock;//func(b: T.Action) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
@@ -324,23 +358,23 @@ actor Self {
                                                             // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
         addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
         hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
-        reducers = [balances.reducer, dedup.reducer];//, balancesIlde.reducer];      //<-----REDO
+        reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];      //<-----REDO
     });
     
 
     public shared(msg) func set_ledger_canister(): async () {
         chain_mem.canister := ?Principal.fromActor(Self);
-        //chain_ilde.set_ledger_canister(Principal.fromActor(Self));
+        //chain.set_ledger_canister(Principal.fromActor(Self));
     };
 
     public shared(msg) func add_record(x: T.Action): async (Nat) {
         //return icrc3().add_record<system>(x, null);
 
-        let ret = chain_ilde.dispatch(x);  //handle error
+        let ret = chain.dispatch(x);  //handle error
         //add block to ledger
         switch (ret) {
             case (#Ok(p)) {
-                //Debug.print("Ok");
+                Debug.print("Ok");
                 return 0;
             };
             case (#Err(p)) {
@@ -373,7 +407,7 @@ actor Self {
     // ----> It also says that "It also needs archival mechanism that spawns canisters, move blocks to them" (later)
     // . Alternative to ICRC-3 
     // public query func get_transactions(req: rechain.GetBlocksRequest) : async rechain.GetTransactionsResponse {
-    //     chain_ilde.get_transactions(req);
+    //     chain.get_transactions(req);
     // };
 
     // --
@@ -461,7 +495,7 @@ actor Self {
             payload = payload;
         };
 
-        let ret = chain_ilde.dispatch(action);
+        let ret = chain.dispatch(action);
         return ret;
         // switch (ret) {
         //     case (#Ok(p)) {
