@@ -70,17 +70,25 @@ module {
                    
                     let from_principal_blob = p.from[0];
                
-                    let from_subaccount_blob = p.from[1];
+                    let from_subaccount_blob = if(p.from.size() > 1) p.from[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+
+                    //let from_subaccount_blob = p.from[1];
               
                     let from_principal_principal = Principal.fromBlob(from_principal_blob);
                 
+                    Debug.print(debug_show("")); 
                     let from_bacc = Principal.toLedgerAccount(from_principal_principal, ?from_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
                     //ILDEe
              
                     let bal = get_balance(from_bacc);
+
+                    Debug.print("balance:"#debug_show(bal));
+                    Debug.print("to burn:"#debug_show(p.amt));
+                    Debug.print("config fee:"#debug_show(config.FEE));
      
                     if (bal < p.amt + config.FEE) return #Err(#BadBurn({ min_burn_amount = config.FEE }));
+                    Debug.print("GOOD");
                     #Ok(
                         func(_) {
                             put_balance(from_bacc, bal - p.amt - config.FEE);
@@ -90,8 +98,12 @@ module {
                 case (#mint(p)) {
                     //let ?to_bacc = accountToBlob(p.to) else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
                     //ILDEBegin
+
                     let to_principal_blob = p.to[0];
-                    let to_subaccount_blob = p.to[1];
+
+                    let to_subaccount_blob = if(p.to.size() > 1) p.to[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+
+                    //let to_subaccount_blob = p.to[1]; //<<----this gives error when no sub-account
                     let to_principal_principal = Principal.fromBlob(to_principal_blob);
                     let to_bacc = Principal.toLedgerAccount(to_principal_principal, ?to_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
