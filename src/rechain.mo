@@ -166,11 +166,14 @@ module {
             let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
             // Check if any reducer returned an error and terminate if so
             let hasError = Array.find<ReducerResponse<E>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
+            Debug.print("before checking for errors");
             switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
             let blockId = mem.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
             ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
             // !!! ILDE:TBD
+
+            Debug.print("dispatch went through!");
 
             // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
             // 2) create new block according to steps 2-4 from ICDev ICRC3 implementation
