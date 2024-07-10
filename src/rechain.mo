@@ -166,7 +166,7 @@ module {
             let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
             // Check if any reducer returned an error and terminate if so
             let hasError = Array.find<ReducerResponse<E>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
-            Debug.print("before checking for errors");
+            //Debug.print("before checking for errors");
             switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
             let blockId = mem.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
@@ -576,7 +576,7 @@ module {
     /// - The result of getting transactions
     
     public func get_blocks(args: T.GetBlocksArgs) : T.GetBlocksResult{
-        Debug.print("get_transaction_states" # debug_show(stats()));
+        Debug.print("get_transaction_stats " # debug_show(stats()));
         let local_ledger_length = history.len(); //ILDE Vec.size(state.ledger);
         let ledger_length = if(mem.lastIndex == 0 and local_ledger_length == 0) {
             0;
@@ -584,49 +584,52 @@ module {
             mem.lastIndex + 1;
         };
 
-        Debug.print("have ledger length" # debug_show(ledger_length));
+        Debug.print("have ledger length " # debug_show(ledger_length));
         
         //get the transactions on this canister
         let transactions = Vec.new<T.ServiceBlock>();
+        
         for(thisArg in args.vals()){
-            
+            Debug.print("print argument inside getBlocks");
+            Debug.print(debug_show(thisArg));
             let start = if(thisArg.start + thisArg.length > mem.firstIndex){
+
                 let start = if(thisArg.start <= mem.firstIndex){
                     mem.firstIndex;//ILDE:"our sliding window first valid element is state.firstIndex not 0" 0;
-            } else{
-                if(thisArg.start >= (mem.firstIndex)){
-                    thisArg.start;//ILDE:"thisArg.start is already the index in our sliding window" Nat.sub(thisArg.start, (state.firstIndex));
-                } else {
-                    Debug.trap("last index must be larger than requested start plus one");
-                };
-            };
-
-            let end = if(history.len()==0){ // ILDE Vec.size(state.ledger)==0){
-                mem.lastIndex;//ILDE: 0;
-            } else if(thisArg.start + thisArg.length >= mem.lastIndex){
-                mem.lastIndex;//ILDE: "lastIndex is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
-            } else {
-                thisArg.start + thisArg.length;//ILDE
-                //ILDE Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))
-            };
-
-            Debug.print("getting local transactions" # debug_show(start,end)); // ILDE<-----
-            // ILDE: buf.getOpt(1) // -> ?"b"
-            //some of the items are on this server
-            if(history.len() > 0 ){ // ILDE Vec.size(state.ledger) > 0){
-                label search for(thisItem in Iter.range(start, end)){
-                    if(thisItem >= mem.lastIndex){ //ILDE state.history.len()){ //ILDE Vec.size(state.ledger)){
-                        break search;
+                } else{
+                    if(thisArg.start >= (mem.firstIndex)){
+                        thisArg.start;//ILDE:"thisArg.start is already the index in our sliding window" Nat.sub(thisArg.start, (state.firstIndex));
+                    } else {
+                        Debug.trap("last index must be larger than requested start plus one");
                     };
-                    Vec.add(transactions, {
-                        id = thisItem; //ILDE state.firstIndex + thisItem;
-                        block = history.getOpt(thisItem); // ILDE Vec.get(state.ledger, thisItem)
-                    });
+                };
+                Debug.print("start: "# debug_show(start));
+                
+                let end = if(history.len()==0){ // ILDE Vec.size(state.ledger)==0){
+                    mem.lastIndex;//ILDE: 0;
+                } else if(thisArg.start + thisArg.length - 1 >= mem.lastIndex){
+                    mem.lastIndex;//ILDE: "lastIndex is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
+                } else {
+                    thisArg.start + thisArg.length - 1;//ILDE
+                    //ILDE Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))
+                };
+
+                Debug.print("getting local transactions" # debug_show(start,end)); // ILDE<-----
+                // ILDE: buf.getOpt(1) // -> ?"b"
+                //some of the items are on this server
+                if(history.len() > 0 ){ // ILDE Vec.size(state.ledger) > 0){
+                    label search for(thisItem in Iter.range(start, end)){
+                        if(thisItem >= mem.lastIndex){ //ILDE state.history.len()){ //ILDE Vec.size(state.ledger)){
+                            break search;
+                        };
+                        Vec.add(transactions, {
+                            id = thisItem; //ILDE state.firstIndex + thisItem;
+                            block = history.getOpt(thisItem); // ILDE Vec.get(state.ledger, thisItem)
+                        });
+                    };
                 };
             };
-
         };
-      };
 
       //get any relevant archives
       let archives = Map.new<Principal, (Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)>();

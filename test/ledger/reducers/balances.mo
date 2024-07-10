@@ -76,19 +76,19 @@ module {
               
                     let from_principal_principal = Principal.fromBlob(from_principal_blob);
                 
-                    Debug.print(debug_show("")); 
+                    //Debug.print(debug_show("")); 
                     let from_bacc = Principal.toLedgerAccount(from_principal_principal, ?from_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
                     //ILDEe
              
                     let bal = get_balance(from_bacc);
 
-                    Debug.print("balance:"#debug_show(bal));
-                    Debug.print("to burn:"#debug_show(p.amt));
-                    Debug.print("config fee:"#debug_show(config.FEE));
+                    //Debug.print("balance:"#debug_show(bal));
+                    //Debug.print("to burn:"#debug_show(p.amt));
+                    //Debug.print("config fee:"#debug_show(config.FEE));
      
                     if (bal < p.amt + config.FEE) return #Err(#BadBurn({ min_burn_amount = config.FEE }));
-                    Debug.print("GOOD");
+                    //Debug.print("GOOD");
                     #Ok(
                         func(_) {
                             put_balance(from_bacc, bal - p.amt - config.FEE);
