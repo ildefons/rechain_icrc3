@@ -67,6 +67,49 @@ actor Self {
 
     // IMHERE--->How ICDev ICRC3 example is creating blocks?
 
+    func decodeBlock(block: rechain.Value) : () {
+        // public type Value = { 
+        //     #Blob : Blob; 
+        //     #Text : Text; 
+        //     #Nat : Nat;
+        //     #Int : Int;
+        //     #Array : [Value]; 
+        //     #Map : [(Text, Value)]; 
+        // };
+
+        // public type Action = {
+        //     ts: Nat64;
+        //     created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
+        //     memo: ?Blob; //ILDE: I have added after the discussion with V
+        //     caller: Principal;  //ILDE: I have added after the discussion with V 
+        //     fee: ?Nat;
+        //     payload : {
+        //         #burn : {
+        //             amt: Nat;
+        //             from: [Blob];
+        //         };
+        //         #transfer : {
+        //             to : [Blob];
+        //             from : [Blob];
+        //             amt : Nat;
+        //         };
+        //         #transfer_from : {
+        //             to : [Blob];
+        //             from : [Blob];
+        //             amt : Nat;
+        //         };
+        //         #mint : {
+        //             to : [Blob];
+        //             amt : Nat;
+        //         };
+        //     };
+        // };
+        Debug.print(debug_show(block));
+    };
+
+    // public shared(msg) func testdecode(block: rechain.Value): async () {
+    //     decodeBlock(block);
+    // };
     // So to use Rechain, I think encodeBlock is just identity function, the hashblock is the standard
 
     func encodeBlock(b: T.Action) : rechain.Value {
@@ -188,6 +231,15 @@ actor Self {
 
     func hashBlock(b: rechain.Value) : Blob {
         Blob.fromArray(RepIndy.hash_val(b));
+    };
+
+    public type testtype = {
+        #A: Int;
+        #B: Text;
+    };
+
+    public shared(msg) func testme(): async testtype {
+        return #A(2);
     };
 
     public shared(msg) func test1(): async rechain.Value {

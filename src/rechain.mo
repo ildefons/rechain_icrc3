@@ -196,7 +196,7 @@ module {
             };
             // add encoded blockIlde to new block with phash
             Vec.add(trx,("tx", encodedBlock));
-            // covert vector to map to make it consistent with BlockIlde type
+            // covert vector to map to make it consistent with Value type
             let thisTrx = #Map(Vec.toArray(trx));
             // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
             mem.phash := ?hashBlock(thisTrx);//?Blob.fromArray(RepIndy.hash_val(thisTrx));
@@ -607,8 +607,8 @@ module {
                 
                 let end = if(history.len()==0){ // ILDE Vec.size(state.ledger)==0){
                     mem.lastIndex;//ILDE: 0;
-                } else if(thisArg.start + thisArg.length - 1 >= mem.lastIndex){
-                    mem.lastIndex;//ILDE: "lastIndex is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
+                } else if(thisArg.start + thisArg.length >= mem.lastIndex){
+                    mem.lastIndex - 1;//ILDE: "lastIndex - 1 is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
                 } else {
                     thisArg.start + thisArg.length - 1;//ILDE
                     //ILDE Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))

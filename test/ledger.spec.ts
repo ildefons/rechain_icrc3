@@ -15,6 +15,7 @@ import {
   GetBlocksArgs,
   TransactionRange,
   GetTransactionsResult,
+  Value__1,
 } from "./build/ledger.idl.js";
 
 
@@ -165,7 +166,7 @@ describe("Counter", () => {
     expect(i).toBe(5n);
   });
 
-  it("retrieve_blocks1", async () => {
+  it("retrieve_blocks_online1", async () => {
     //let tr: TransactionRange =  {start:10n,length:3n};
     let my_block_args: GetBlocksArgs = [
       {start:0n,length:3n},
@@ -188,6 +189,160 @@ describe("Counter", () => {
     expect(my_blocks.blocks.length).toBe(3);
   });
 
+  it("check_online_block_content1", async () => {
+    //let tr: TransactionRange =  {start:10n,length:3n};
+    let my_block_args: GetBlocksArgs = [
+      {start:0n,length:1n},
+      //{start:20n,length:3n},
+    ]
+
+    let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
+    // console.log(my_blocks.blocks[0].id);
+    // console.log(my_blocks.blocks[0].block);  // how to deserialize?
+    //let my_block = my_blocks[0].block;//: []|[Value__1]
+    
+    // let aux = await can.testme();
+    // console.log(aux);
+    // // if(aux.hasOwnProperty('A')) {
+    // //   console.log(aux[0]);
+    // // };
+    // if ('A' in aux) {
+    //   console.log(aux.A);
+    // };
+
+    // console.log(my_blocks.blocks[0]);
+    let my_block_id = -1n;
+    let my_block_ts = -1n;
+    let my_created_at_time = -1n;
+    let my_memo;//: Uint8Array | number[];
+    let my_caller;//: Uint8Array | number[];
+    let my_fee = -1n;
+    let my_btype = '???';
+    let my_payload_amt = -1n;//', { Map: [Array] } ]
+    let my_payload_to;
+    let my_payload_from;
+
+    if (my_blocks.blocks[0].block[0] !== undefined) {
+      
+      const aux: Value__1 = my_blocks.blocks[0].block[0];
+      if ('id' in my_blocks.blocks[0]) {
+        my_block_id = my_blocks.blocks[0].id;
+        // console.log("id:",my_block_id);
+      }
+      if ('Map' in aux) {
+        const aux2 = aux.Map;
+        // console.log("aux")
+        // console.log(aux);
+        // console.log("aux2 = aux.Map")
+        // console.log(aux2);
+        // console.log(aux2[0][1]);
+        if ('Map' in aux2[0][1]) {
+          const aux3 = aux2[0][1];
+          // console.log(aux3.Map);
+          // console.log(aux3.Map[0]);
+          // console.log(aux3.Map[0][0]);
+          // console.log(aux3.Map[0][1]);
+          if ('Nat' in aux3.Map[0][1]) {
+            // console.log(aux3.Map[0][1].Nat);
+            my_block_ts = aux3.Map[0][1].Nat;
+          }
+          if ('Nat' in aux3.Map[1][1]) {
+            // console.log(aux3.Map[1][1].Nat);
+            my_created_at_time = aux3.Map[1][1].Nat;
+          }
+          if ('Blob' in aux3.Map[2][1]) {
+            // console.log(aux3.Map[2][1].Blob);
+            my_memo = aux3.Map[2][1].Blob;
+          }
+          if ('Blob' in aux3.Map[3][1]) {
+            // console.log(aux3.Map[3][1].Blob);
+            my_caller = aux3.Map[3][1].Blob;
+          }
+          if ('Nat' in aux3.Map[4][1]) {
+            // console.log(aux3.Map[4][1].Nat);
+            my_fee = aux3.Map[4][1].Nat;
+          } 
+          if ('Text' in aux3.Map[5][1]) {
+            // console.log(aux3.Map[5][1].Text);
+            my_btype = aux3.Map[5][1].Text;
+          } 
+          if ('Map' in aux3.Map[6][1]) {
+            // console.log(aux3.Map[6][1].Map);
+            const aux4 = aux3.Map[6][1];
+            if ('Nat' in aux4.Map[0][1]) {
+              // console.log(aux4.Map[0][1].Nat);
+              my_payload_amt = aux4.Map[0][1].Nat;
+            }
+            if ('Array' in aux4.Map[1][1]) {
+              // console.log(aux4.Map[1][1].Array);
+              // console.log(aux4.Map[1][0]);
+              if (aux4.Map[1][0] == 'to'){
+                const aux5 = aux4.Map[1][1].Array;
+                // console.log(aux5);
+                if ('Blob' in aux5[0]) {
+                  // console.log(aux5[0].Blob);
+                  my_payload_to = aux5[0].Blob
+                }
+              } else if (aux4.Map[1][0] == 'from'){
+                const aux5 = aux4.Map[1][1].Array;
+                // console.log(aux5);
+                if ('Blob' in aux5[0]) {
+                  // console.log(aux5[0].Blob);
+                  my_payload_from = aux5[0].Blob
+                }
+              }
+            }
+            if (typeof aux4.Map[2] != "undefined") {
+
+              if ('Array' in aux4.Map[2][1]) {
+                // console.log(aux4.Map[2][1].Array);
+                // console.log(aux4.Map[2][0]);
+                if (aux4.Map[2][0] == 'to'){
+                  const aux5 = aux4.Map[2][1].Array;
+                  // console.log(aux5);
+                  if ('Blob' in aux5[0]) {
+                    // console.log(aux5[0].Blob);
+                    my_payload_to = aux5[0].Blob
+                  }
+                } else if (aux4.Map[2][0] == 'from'){
+                  const aux5 = aux4.Map[2][1].Array;
+                  // console.log(aux5);
+                  if ('Blob' in aux5[0]) {
+                    // console.log(aux5[0].Blob);
+                    my_payload_from = aux5[0].Blob
+                  }
+                }
+              }
+            }
+          } 
+          //<---IMHERE continue decode function
+          console.log("id:",my_block_id);
+          console.log("ts",my_block_ts);
+          console.log("my_created_at_time:",my_created_at_time);
+          console.log("memo:",my_memo);
+          console.log("caller:",my_caller);
+          console.log("fee:",my_fee);
+          console.log("btype:",my_btype);
+          console.log("amt:",my_payload_amt);
+          console.log("to:",my_payload_to);
+          console.log("from:",my_payload_from);
+        }
+      }
+      
+      //console.log(aux);
+    };
+    
+    //   if ('Map' in my_block[0]) {
+    //   console.log(aux.A);
+    // };
+    // if(my_block[0].hasOwnProperty('Map'))
+    // {
+    //   console.log("ddd");//my_block[0]);
+    // }
+    expect(my_blocks.blocks.length).toBe(1);
+  });
+
+  // check bugs in get_blocks (-1)
   // test content of blocks
   // test ids
   // test archived retrival of archived blocks
