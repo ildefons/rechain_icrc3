@@ -105,7 +105,7 @@ module {
 
         //ILDE: state variable (in the future I will join them all in a single variable "state"
         let state = {
-            var canister: ?Principal = null; // ILDE: this is non-valid caniter controller until I set it up externally afater initialization 
+            // var canister: ?Principal = null; // ILDE: this is non-valid caniter controller until I set it up externally afater initialization 
                                               // ILDE: I have to add this paramter because it is used by "update_controllers"
             // var lastIndex = 0;
             // var firstIndex = 0;
@@ -113,7 +113,7 @@ module {
             // var phash: ?Blob = mem.phash;
             // var ledger : Vec.Vector<Transaction> = Vec.new<Transaction>(); //ILDE: not used
             var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
-            var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see add_record mothod below)
+            var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see mothod below)
             // var latest_hash = null; //ILDE: not used because I am using "phash" above 
             // supportedBlocks =  Vec.new<BlockType>(); //ILDE: not used
             // archives = Map.new<Principal, T.TransactionRange>();
@@ -294,16 +294,19 @@ module {
                 //ILDE: note that this method uses the costructor argument "canister" = princiapl of "ledger" canister
                 //ignore //ILDE: since now "update_controllers" returns a possible error in case the ledger canister Principal is not yet set
                 // ILDE: I added a await because I need to check that the ledger canister principal is well set 
-                let myerror = await update_controllers(Principal.fromActor(newArchive));
-                switch (myerror){
-                    case(#err(val)){
-                        Debug.print("aa3");
-                        Debug.print("The ledger canister Principal is not yet. run setset_ledger_canister( canister: Principal ) and continue");
-                        state.bCleaning := false;
-                        return;
-                    };
-                    case(_){};
-                };
+
+                //ILDE: removed 12/7/2024: we dont need to set the ledger as controller because we can already checj balance of archives 
+                
+                // let myerror = await update_controllers(Principal.fromActor(newArchive));
+                // switch (myerror){
+                //     case(#err(val)){
+                //         Debug.print("aa3");
+                //         Debug.print("The ledger canister Principal is not yet. run setset_ledger_canister( canister: Principal ) and continue");
+                //         state.bCleaning := false;
+                //         return;
+                //     };
+                //     case(_){};
+                // };
 
                 let newItem = {
                     start = 0;
@@ -517,33 +520,34 @@ module {
     ///
     /// Arguments:
     /// - `canisterId`: The canister ID
-    private func update_controllers(canisterId : Principal) : async (T.UpdatecontrollerResponse){ //<---HERE
-        let ?canister = mem.canister else return #err(0);
+    
+    // private func update_controllers(canisterId : Principal) : async (T.UpdatecontrollerResponse){ //<---HERE
+    //     let ?canister = mem.canister else return #err(0);
         
-        switch(state.constants.archiveProperties.archiveControllers){
-            case(?val){
-                let final_list = switch(val){
-                    case(?list){
-                        let a_set = Set.fromIter<Principal>(list.vals(), Map.phash);
-                        Set.add(a_set, Map.phash, canister);
-                        ?Set.toArray(a_set);
-                    };
-                    case(null){
-                        ?[canister];
-                    };
-                };
-                ignore ic.update_settings(({canister_id = canisterId; settings = {
-                        controllers = final_list;
-                        freezing_threshold = null;
-                        memory_allocation = null;
-                        compute_allocation = null;
-                }}));
-            };
-            case(_){};    
-        };
+    //     switch(state.constants.archiveProperties.archiveControllers){
+    //         case(?val){
+    //             let final_list = switch(val){
+    //                 case(?list){
+    //                     let a_set = Set.fromIter<Principal>(list.vals(), Map.phash);
+    //                     Set.add(a_set, Map.phash, canister);
+    //                     ?Set.toArray(a_set);
+    //                 };
+    //                 case(null){
+    //                     ?[canister];
+    //                 };
+    //             };
+    //             ignore ic.update_settings(({canister_id = canisterId; settings = {
+    //                     controllers = final_list;
+    //                     freezing_threshold = null;
+    //                     memory_allocation = null;
+    //                     compute_allocation = null;
+    //             }}));
+    //         };
+    //         case(_){};    
+    //     };
 
-        return #ok(0);
-    };
+    //     return #ok(0);
+    // };
 
     // Handle transaction retrieval and archiving
     public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {

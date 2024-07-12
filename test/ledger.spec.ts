@@ -36,7 +36,145 @@ export async function TestCan(pic: PocketIc, ledgerCanisterId: Principal) {
   return fixture;
 }
 
-describe("Counter", () => {
+function decodeBlock(my_blocks:GetTransactionsResult, block_pos:number ) {
+  // console.log(my_blocks.blocks[0]);
+  let my_block_id = -1n;
+  let my_block_ts = -1n;
+  let my_created_at_time = -1n;
+  let my_memo;//: Uint8Array | number[];
+  let my_caller;//: Uint8Array | number[];
+  let my_fee = -1n;
+  let my_btype = '???';
+  let my_payload_amt = -1n;//', { Map: [Array] } ]
+  let my_payload_to;
+  let my_payload_from;
+
+  //let aux: Value__1|undefined;
+  // if (my_blocks.blocks[0].block[0] !== undefined) {
+      
+  //   const aux: Value__1 = my_blocks.blocks[0].block[0];
+
+  if (my_blocks.blocks[block_pos].block[0] !== undefined) {
+    const aux: Value__1 = my_blocks.blocks[block_pos].block[0];
+    if ('id' in my_blocks.blocks[block_pos]) {
+      my_block_id = my_blocks.blocks[block_pos].id;
+    }
+  
+    if ('Map' in aux) {
+      const aux2 = aux.Map;
+      // console.log("aux")
+      // console.log(aux);
+      // console.log("aux2 = aux.Map")
+      // console.log(aux2);
+      // console.log(aux2[0][1]);
+      if ('Map' in aux2[0][1]) {
+        const aux3 = aux2[0][1];
+        // console.log(aux3.Map);
+        // console.log(aux3.Map[0]);
+        // console.log(aux3.Map[0][0]);
+        // console.log(aux3.Map[0][1]);
+        if ('Nat' in aux3.Map[0][1]) {
+          // console.log(aux3.Map[0][1].Nat);
+          my_block_ts = aux3.Map[0][1].Nat;
+        }
+        if ('Nat' in aux3.Map[1][1]) {
+          // console.log(aux3.Map[1][1].Nat);
+          my_created_at_time = aux3.Map[1][1].Nat;
+        }
+        if ('Blob' in aux3.Map[2][1]) {
+          // console.log(aux3.Map[2][1].Blob);
+          my_memo = aux3.Map[2][1].Blob;
+        }
+        if ('Blob' in aux3.Map[3][1]) {
+          // console.log(aux3.Map[3][1].Blob);
+          my_caller = aux3.Map[3][1].Blob;
+        }
+        if ('Nat' in aux3.Map[4][1]) {
+          // console.log(aux3.Map[4][1].Nat);
+          my_fee = aux3.Map[4][1].Nat;
+        } 
+        if ('Text' in aux3.Map[5][1]) {
+          // console.log(aux3.Map[5][1].Text);
+          my_btype = aux3.Map[5][1].Text;
+        } 
+        if ('Map' in aux3.Map[6][1]) {
+          // console.log(aux3.Map[6][1].Map);
+          const aux4 = aux3.Map[6][1];
+          if ('Nat' in aux4.Map[0][1]) {
+            // console.log(aux4.Map[0][1].Nat);
+            my_payload_amt = aux4.Map[0][1].Nat;
+          }
+          if ('Array' in aux4.Map[1][1]) {
+            // console.log(aux4.Map[1][1].Array);
+            // console.log(aux4.Map[1][0]);
+            if (aux4.Map[1][0] == 'to'){
+              const aux5 = aux4.Map[1][1].Array;
+              // console.log(aux5);
+              if ('Blob' in aux5[0]) {
+                // console.log(aux5[0].Blob);
+                my_payload_to = aux5[0].Blob
+              }
+            } else if (aux4.Map[1][0] == 'from'){
+              const aux5 = aux4.Map[1][1].Array;
+              // console.log(aux5);
+              if ('Blob' in aux5[0]) {
+                // console.log(aux5[0].Blob);
+                my_payload_from = aux5[0].Blob
+              }
+            }
+          }
+          if (typeof aux4.Map[2] != "undefined") {
+
+            if ('Array' in aux4.Map[2][1]) {
+              // console.log(aux4.Map[2][1].Array);
+              // console.log(aux4.Map[2][0]);
+              if (aux4.Map[2][0] == 'to'){
+                const aux5 = aux4.Map[2][1].Array;
+                // console.log(aux5);
+                if ('Blob' in aux5[0]) {
+                  // console.log(aux5[0].Blob);
+                  my_payload_to = aux5[0].Blob
+                }
+              } else if (aux4.Map[2][0] == 'from'){
+                const aux5 = aux4.Map[2][1].Array;
+                // console.log(aux5);
+                if ('Blob' in aux5[0]) {
+                  // console.log(aux5[0].Blob);
+                  my_payload_from = aux5[0].Blob
+                }
+              }
+            }
+          }
+        } 
+        //<---IMHERE continue decode function
+        // console.log("id:",my_block_id);
+        // console.log("ts",my_block_ts);
+        // console.log("my_created_at_time:",my_created_at_time);
+        // console.log("memo:",my_memo);
+        // console.log("caller:",my_caller);
+        // console.log("fee:",my_fee);
+        // console.log("btype:",my_btype);
+        // console.log("amt:",my_payload_amt);
+        // console.log("to:",my_payload_to);
+        // console.log("from:",my_payload_from);
+
+      }
+    } 
+  }
+
+  return({block_id: my_block_id,
+          block_ts: my_block_ts,
+          created_at_time: my_created_at_time,
+          memo: my_memo,//: Uint8Array | number[];
+          caller: my_caller,//: Uint8Array | number[];
+          fee: my_fee,
+          btype: my_btype,
+          payload_amt: my_payload_amt,//', { Map: [Array] } ]
+          payload_to: my_payload_to,//: Uint8Array | number[];
+          payload_from: my_payload_from});//: Uint8Array | number[];
+};
+
+describe("Rechain ICRC3 ledger tests", () => {
   let pic: PocketIc;
   let can: Actor<TestService>;
   let canCanisterId: Principal;
@@ -63,46 +201,14 @@ describe("Counter", () => {
     can = fixture.actor;
     canCanisterId = fixture.canisterId; //ILDE: I need the id given by
     
-    await can.set_ledger_canister();
+    //await can.set_ledger_canister();
   });
 
   afterAll(async () => {
     await pic.tearDown(); //ILDE: this means "it removes the replica"
   });
 
-  it("add_mint_record1", async () => {
-    let my_action: Action = {
-      ts : 0n,
-      created_at_time : [0n], //?Nat64
-      memo: [], //?Blob;
-      caller: jo.getPrincipal(),  
-      fee: [], //?Nat
-      payload : {
-          // #burn : {
-          //     amt: Nat;
-          //     from: [Blob];
-          // };
-          // #transfer : {
-          //     to : [Blob];
-          //     from : [Blob];
-          //     amt : Nat;
-          // };
-          // #transfer_from : {
-          //     to : [Blob];
-          //     from : [Blob];
-          //     amt : Nat;
-          // };
-          mint : {
-              to : [ilde.getPrincipal().toUint8Array()],
-              amt : 100n,
-          },
-      },
-    };
-    let r = await can.add_record(my_action);
-    expect(r).toBe(0n);
-  });
-
-  it("add_mint_burn_check1", async () => {
+  it("check_burnblock_to", async () => {
     let my_mint_action: Action = {
       ts : 0n,
       created_at_time : [0n], //?Nat64
@@ -111,85 +217,16 @@ describe("Counter", () => {
       fee: [], //?Nat
       payload : {
           mint : {
-              to : [bob.getPrincipal().toUint8Array()],
-              amt : 100n,
-          },
-      },
-    };
-    let my_burn_action: Action = {
-      ts : 0n,
-      created_at_time : [0n], //?Nat64
-      memo: [], //?Blob;
-      caller: jo.getPrincipal(),  
-      fee: [], //?Nat
-      payload : {
-          burn : {
               amt : 50n,
-              from : [bob.getPrincipal().toUint8Array()],
+              to : [john0.getPrincipal().toUint8Array()],
           },
       },
     };
     let r_mint = await can.add_record(my_mint_action);
-    let r_burn = await can.add_record(my_burn_action);
-
-    //{ owner : Principal; subaccount : ?Blob };
-    let my_account: Account = {
-      owner : bob.getPrincipal(),
-      subaccount: [], 
-    };
-    let r_bal = await can.icrc1_balance_of(my_account);  
-
-    expect(r_bal).toBe(50n);
-  });
-
-  it("trigger_archive1", async () => {
-    let my_action: Action = {
-      ts : 0n,
-      created_at_time : [0n], //?Nat64
-      memo: [], //?Blob;
-      caller: jo.getPrincipal(),  
-      fee: [], //?Nat
-      payload : {
-          mint : {
-              to : [john1.getPrincipal().toUint8Array()],
-              amt : 100n,
-          },
-      },
-    };
-
-    let i = 0n;
-    for (; i < 5; i++) {
-      let r = await can.add_record(my_action);
-      console.log(i);
-    }
     
-    expect(i).toBe(5n);
-  });
-
-  it("retrieve_blocks_online1", async () => {
-    //let tr: TransactionRange =  {start:10n,length:3n};
-    let my_block_args: GetBlocksArgs = [
-      {start:0n,length:3n},
-      //{start:20n,length:3n},
-    ]
-    //   public type TransactionRange = {
-    //     start : Nat;
-    //     length : Nat;
-    // };
-    //   public type GetTransactionsResult = {
-    //     // Total number of transactions in the
-    //     // transaction log
-    //     log_length : Nat;        
-    //     blocks : [{ id : Nat; block : ?Value }];
-    //     archived_blocks : [ArchivedTransactionResponse];
-    // };
-    let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
-    console.log("blocks");
-    console.log(my_blocks.blocks[0]);
-    expect(my_blocks.blocks.length).toBe(3);
-  });
-
-  it("check_online_block_content1", async () => {
+    console.log("r_mint:", r_mint);
+    
+    //expect(r_mint).toBe(0n);
     //let tr: TransactionRange =  {start:10n,length:3n};
     let my_block_args: GetBlocksArgs = [
       {start:0n,length:1n},
@@ -197,157 +234,221 @@ describe("Counter", () => {
     ]
 
     let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
-    // console.log(my_blocks.blocks[0].id);
-    // console.log(my_blocks.blocks[0].block);  // how to deserialize?
-    //let my_block = my_blocks[0].block;//: []|[Value__1]
+    const decodedBlock0 = decodeBlock(my_blocks,0);   
+    const john0_to = john0.getPrincipal().toUint8Array();
+
+    expect(true).toBe(JSON.stringify(john0_to) === JSON.stringify(decodedBlock0.payload_to));
+    expect(decodedBlock0.block_id).toBe(0n);
     
-    // let aux = await can.testme();
-    // console.log(aux);
-    // // if(aux.hasOwnProperty('A')) {
-    // //   console.log(aux[0]);
-    // // };
-    // if ('A' in aux) {
-    //   console.log(aux.A);
-    // };
-
-    // console.log(my_blocks.blocks[0]);
-    let my_block_id = -1n;
-    let my_block_ts = -1n;
-    let my_created_at_time = -1n;
-    let my_memo;//: Uint8Array | number[];
-    let my_caller;//: Uint8Array | number[];
-    let my_fee = -1n;
-    let my_btype = '???';
-    let my_payload_amt = -1n;//', { Map: [Array] } ]
-    let my_payload_to;
-    let my_payload_from;
-
-    if (my_blocks.blocks[0].block[0] !== undefined) {
-      
-      const aux: Value__1 = my_blocks.blocks[0].block[0];
-      if ('id' in my_blocks.blocks[0]) {
-        my_block_id = my_blocks.blocks[0].id;
-        // console.log("id:",my_block_id);
-      }
-      if ('Map' in aux) {
-        const aux2 = aux.Map;
-        // console.log("aux")
-        // console.log(aux);
-        // console.log("aux2 = aux.Map")
-        // console.log(aux2);
-        // console.log(aux2[0][1]);
-        if ('Map' in aux2[0][1]) {
-          const aux3 = aux2[0][1];
-          // console.log(aux3.Map);
-          // console.log(aux3.Map[0]);
-          // console.log(aux3.Map[0][0]);
-          // console.log(aux3.Map[0][1]);
-          if ('Nat' in aux3.Map[0][1]) {
-            // console.log(aux3.Map[0][1].Nat);
-            my_block_ts = aux3.Map[0][1].Nat;
-          }
-          if ('Nat' in aux3.Map[1][1]) {
-            // console.log(aux3.Map[1][1].Nat);
-            my_created_at_time = aux3.Map[1][1].Nat;
-          }
-          if ('Blob' in aux3.Map[2][1]) {
-            // console.log(aux3.Map[2][1].Blob);
-            my_memo = aux3.Map[2][1].Blob;
-          }
-          if ('Blob' in aux3.Map[3][1]) {
-            // console.log(aux3.Map[3][1].Blob);
-            my_caller = aux3.Map[3][1].Blob;
-          }
-          if ('Nat' in aux3.Map[4][1]) {
-            // console.log(aux3.Map[4][1].Nat);
-            my_fee = aux3.Map[4][1].Nat;
-          } 
-          if ('Text' in aux3.Map[5][1]) {
-            // console.log(aux3.Map[5][1].Text);
-            my_btype = aux3.Map[5][1].Text;
-          } 
-          if ('Map' in aux3.Map[6][1]) {
-            // console.log(aux3.Map[6][1].Map);
-            const aux4 = aux3.Map[6][1];
-            if ('Nat' in aux4.Map[0][1]) {
-              // console.log(aux4.Map[0][1].Nat);
-              my_payload_amt = aux4.Map[0][1].Nat;
-            }
-            if ('Array' in aux4.Map[1][1]) {
-              // console.log(aux4.Map[1][1].Array);
-              // console.log(aux4.Map[1][0]);
-              if (aux4.Map[1][0] == 'to'){
-                const aux5 = aux4.Map[1][1].Array;
-                // console.log(aux5);
-                if ('Blob' in aux5[0]) {
-                  // console.log(aux5[0].Blob);
-                  my_payload_to = aux5[0].Blob
-                }
-              } else if (aux4.Map[1][0] == 'from'){
-                const aux5 = aux4.Map[1][1].Array;
-                // console.log(aux5);
-                if ('Blob' in aux5[0]) {
-                  // console.log(aux5[0].Blob);
-                  my_payload_from = aux5[0].Blob
-                }
-              }
-            }
-            if (typeof aux4.Map[2] != "undefined") {
-
-              if ('Array' in aux4.Map[2][1]) {
-                // console.log(aux4.Map[2][1].Array);
-                // console.log(aux4.Map[2][0]);
-                if (aux4.Map[2][0] == 'to'){
-                  const aux5 = aux4.Map[2][1].Array;
-                  // console.log(aux5);
-                  if ('Blob' in aux5[0]) {
-                    // console.log(aux5[0].Blob);
-                    my_payload_to = aux5[0].Blob
-                  }
-                } else if (aux4.Map[2][0] == 'from'){
-                  const aux5 = aux4.Map[2][1].Array;
-                  // console.log(aux5);
-                  if ('Blob' in aux5[0]) {
-                    // console.log(aux5[0].Blob);
-                    my_payload_from = aux5[0].Blob
-                  }
-                }
-              }
-            }
-          } 
-          //<---IMHERE continue decode function
-          console.log("id:",my_block_id);
-          console.log("ts",my_block_ts);
-          console.log("my_created_at_time:",my_created_at_time);
-          console.log("memo:",my_memo);
-          console.log("caller:",my_caller);
-          console.log("fee:",my_fee);
-          console.log("btype:",my_btype);
-          console.log("amt:",my_payload_amt);
-          console.log("to:",my_payload_to);
-          console.log("from:",my_payload_from);
-        }
-      }
-      
-      //console.log(aux);
-    };
-    
-    //   if ('Map' in my_block[0]) {
-    //   console.log(aux.A);
-    // };
-    // if(my_block[0].hasOwnProperty('Map'))
-    // {
-    //   console.log("ddd");//my_block[0]);
-    // }
-    expect(my_blocks.blocks.length).toBe(1);
   });
 
-  // check bugs in get_blocks (-1)
-  // test content of blocks
+  // it("check_last_online_ledger_position", async () => {
+  //   // destroy canister to make sure ledger size is 0
+  //   await pic.tearDown(); 
+  //   // create canister again 
+  //   pic = await PocketIc.create(process.env.PIC_URL); //ILDE create();
+  //   const fixture = await TestCan(pic, Principal.fromText("aaaaa-aa"));
+  //   can = fixture.actor;
+  //   canCanisterId = fixture.canisterId; 
+
+  //   let my_mint_action: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         mint : {
+  //             to : [bob.getPrincipal().toUint8Array()],
+  //             amt : 100n,
+  //         },
+  //     },
+  //   };
+
+  //   let i = 0n;
+  //   const num_blocks = 10n;
+  //   for (; i < num_blocks; i++) {
+  //     let r = await can.add_record(my_mint_action);
+  //   }
+
+  //   let my_block_args: GetBlocksArgs = [
+  //      {start:0n,length: num_blocks},
+  //   ]
+
+  //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
+ 
+  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
+
+  //   const num_blocks2 = 11n;
+  //   my_block_args = [
+  //     {start:0n,length: num_blocks2},
+  //   ]
+
+  //   my_blocks = await can.icrc3_get_blocks(my_block_args);
+
+  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
+
+  //   const num_blocks3 = 9n;
+  //   my_block_args = [
+  //     {start:0n,length: num_blocks3},
+  //   ]
+
+  //   my_blocks = await can.icrc3_get_blocks(my_block_args);
+
+  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks3);
+
+  //   // for (let i=0; i < num_blocks3; i++) {
+  //   //   console.log(i,my_blocks.blocks[i].id);      
+  //   // }
+
+  // });
+
+  // it("add_mint_record1", async () => {
+  //   let my_action: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         // #burn : {
+  //         //     amt: Nat;
+  //         //     from: [Blob];
+  //         // };
+  //         // #transfer : {
+  //         //     to : [Blob];
+  //         //     from : [Blob];
+  //         //     amt : Nat;
+  //         // };
+  //         // #transfer_from : {
+  //         //     to : [Blob];
+  //         //     from : [Blob];
+  //         //     amt : Nat;
+  //         // };
+  //         mint : {
+  //             to : [ilde.getPrincipal().toUint8Array()],
+  //             amt : 100n,
+  //         },
+  //     },
+  //   };
+  //   let r = await can.add_record(my_action);
+  //   expect(r).toBe(0n);
+  // });
+
+  // it("add_mint_burn_check1", async () => {
+  //   let my_mint_action: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         mint : {
+  //             to : [bob.getPrincipal().toUint8Array()],
+  //             amt : 100n,
+  //         },
+  //     },
+  //   };
+  //   let my_burn_action: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         burn : {
+  //             amt : 50n,
+  //             from : [bob.getPrincipal().toUint8Array()],
+  //         },
+  //     },
+  //   };
+  //   let r_mint = await can.add_record(my_mint_action);
+  //   let r_burn = await can.add_record(my_burn_action);
+
+  //   //{ owner : Principal; subaccount : ?Blob };
+  //   let my_account: Account = {
+  //     owner : bob.getPrincipal(),
+  //     subaccount: [], 
+  //   };
+  //   let r_bal = await can.icrc1_balance_of(my_account);  
+
+  //   expect(r_bal).toBe(50n);
+  // });
+
+  // it("trigger_archive1", async () => {
+  //   let my_action: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         mint : {
+  //             to : [john1.getPrincipal().toUint8Array()],
+  //             amt : 100n,
+  //         },
+  //     },
+  //   };
+
+  //   let i = 0n;
+  //   for (; i < 5; i++) {
+  //     let r = await can.add_record(my_action);
+  //     console.log(i);
+  //   }
+    
+  //   expect(i).toBe(5n);
+  // });
+
+
+
+  // it("retrieve_blocks_online1", async () => {
+  //   //let tr: TransactionRange =  {start:10n,length:3n};
+  //   let my_block_args: GetBlocksArgs = [
+  //     {start:0n,length:3n},
+  //     //{start:20n,length:3n},
+  //   ]
+  //   //   public type TransactionRange = {
+  //   //     start : Nat;
+  //   //     length : Nat;
+  //   // };
+  //   //   public type GetTransactionsResult = {
+  //   //     // Total number of transactions in the
+  //   //     // transaction log
+  //   //     log_length : Nat;        
+  //   //     blocks : [{ id : Nat; block : ?Value }];
+  //   //     archived_blocks : [ArchivedTransactionResponse];
+  //   // };
+  //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
+  //   console.log("blocks");
+  //   console.log(my_blocks.blocks[0]);
+  //   expect(my_blocks.blocks.length).toBe(3);
+  // });
+
+  // it("check_online_block_content1", async () => {
+  //   //let tr: TransactionRange =  {start:10n,length:3n};
+  //   let my_block_args: GetBlocksArgs = [
+  //     {start:0n,length:2n},
+  //     //{start:20n,length:3n},
+  //   ]
+
+  //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
+    
+  //   const decodedBlock0 = decodeBlock(my_blocks,0);
+  //   const decodedBlock1 = decodeBlock(my_blocks,1);
+  //   expect(decodedBlock0.block_id).toBe(0n);
+  //   expect(decodedBlock1.block_id).toBe(1n);
+  //   expect(my_blocks.blocks.length).toBe(2);
+  // });
+
+  // O check bugs in get_blocks (-1)
+  // O do decoding function to clean testing code 
+  // O test very last block position in online ledger
+  // O test content of blocks
+  // test account balnce after combinations of mint, burn and transfers
   // test ids
+  //    L> Need to return block id after creating it
   // test archived retrival of archived blocks
   // create many archives
-  // do transfers and check balances
 
   async function passTime(n: number) {
     for (let i = 0; i < n; i++) {

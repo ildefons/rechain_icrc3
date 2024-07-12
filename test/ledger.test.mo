@@ -67,46 +67,6 @@ actor Self {
 
     // IMHERE--->How ICDev ICRC3 example is creating blocks?
 
-    func decodeBlock(block: rechain.Value) : () {
-        // public type Value = { 
-        //     #Blob : Blob; 
-        //     #Text : Text; 
-        //     #Nat : Nat;
-        //     #Int : Int;
-        //     #Array : [Value]; 
-        //     #Map : [(Text, Value)]; 
-        // };
-
-        // public type Action = {
-        //     ts: Nat64;
-        //     created_at_time: ?Nat64; //ILDE: I have added after the discussion with V
-        //     memo: ?Blob; //ILDE: I have added after the discussion with V
-        //     caller: Principal;  //ILDE: I have added after the discussion with V 
-        //     fee: ?Nat;
-        //     payload : {
-        //         #burn : {
-        //             amt: Nat;
-        //             from: [Blob];
-        //         };
-        //         #transfer : {
-        //             to : [Blob];
-        //             from : [Blob];
-        //             amt : Nat;
-        //         };
-        //         #transfer_from : {
-        //             to : [Blob];
-        //             from : [Blob];
-        //             amt : Nat;
-        //         };
-        //         #mint : {
-        //             to : [Blob];
-        //             amt : Nat;
-        //         };
-        //     };
-        // };
-        Debug.print(debug_show(block));
-    };
-
     // public shared(msg) func testdecode(block: rechain.Value): async () {
     //     decodeBlock(block);
     // };
@@ -419,22 +379,25 @@ actor Self {
         //chain.set_ledger_canister(Principal.fromActor(Self));
     };
 
-    public shared(msg) func add_record(x: T.Action): async (Nat) {
+    public shared(msg) func add_record(x: T.Action): async (DispatchResult) {
         //return icrc3().add_record<system>(x, null);
 
         let ret = chain.dispatch(x);  //handle error
         //add block to ledger
-        switch (ret) {
-            case (#Ok(p)) {
-                Debug.print("Ok");
-                return 0;
-            };
-            case (#Err(p)) {
-                //<---I MHERE WHY????  Reducer BalcerIlde is giving error
-                Debug.print("Error");
-                return 1;
-            }
-        }; 
+
+        return ret;
+
+        // switch (ret) {
+        //     case (#Ok(p)) {
+        //         Debug.print("Ok");
+        //         return 0;
+        //     };
+        //     case (#Err(p)) {
+        //         //<---I MHERE WHY????  Reducer BalcerIlde is giving error
+        //         Debug.print("Error");
+        //         return 1;
+        //     }
+        // }; 
     };
 
     // ICRC-1
@@ -560,6 +523,12 @@ actor Self {
         //         ret;
         //     }
         // }; 
+    };
+
+    public type DispatchResult = {#Ok : Nat;  #Err: T.ActionError };
+
+    public shared(msg) func dispatch(actions: [T.Action]): async [DispatchResult] {
+        Array.map(actions, func(x: T.Action): DispatchResult = chain.dispatch(x));
     };
 
 };
