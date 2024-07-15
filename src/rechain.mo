@@ -550,23 +550,24 @@ module {
     // };
 
     // Handle transaction retrieval and archiving
-    public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
-        let length = Nat.min(req.length, 1000);
-        let end = history.end();
-        let start = history.start();
-        let resp_length = Nat.min(length, end - start);
-        let transactions = Array.tabulate<T.Value>(resp_length, func (i) {  
-            let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
-            block;
-            }); 
+    // OLD:
+    // public func get_transactions(req: GetBlocksRequest) : GetTransactionsResponse {
+    //     let length = Nat.min(req.length, 1000);
+    //     let end:Nat = history.end()-1;
+    //     let start = history.start();
+    //     let resp_length = Nat.min(length, end - start);
+    //     let transactions = Array.tabulate<T.Value>(resp_length, func (i) {  
+    //         let ?block = history.getOpt(start + i) else Debug.trap("Internal error");
+    //         block;
+    //         }); 
 
-        {
-            first_index=start;
-            log_length=end;
-            transactions;
-            archived_transactions = [];
-        };
-    };
+    //     {
+    //         first_index=start;
+    //         log_length=end;
+    //         transactions;
+    //         archived_transactions = [];
+    //     };
+    // };
 
     /// ILDE: code from ICDev
     /// Returns a set of transactions and pointers to archives if necessary
