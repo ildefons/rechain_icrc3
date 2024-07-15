@@ -146,18 +146,6 @@ function decodeBlock(my_blocks:GetTransactionsResult, block_pos:number ) {
             }
           }
         } 
-        //<---IMHERE continue decode function
-        // console.log("id:",my_block_id);
-        // console.log("ts",my_block_ts);
-        // console.log("my_created_at_time:",my_created_at_time);
-        // console.log("memo:",my_memo);
-        // console.log("caller:",my_caller);
-        // console.log("fee:",my_fee);
-        // console.log("btype:",my_btype);
-        // console.log("amt:",my_payload_amt);
-        // console.log("to:",my_payload_to);
-        // console.log("from:",my_payload_from);
-
       }
     } 
   }
@@ -536,9 +524,10 @@ describe("Rechain ICRC3 ledger tests", () => {
   // O do decoding function to clean testing code 
   // O test very last block position in online ledger
   // O test content of blocks
-  // test account balnce after combinations of mint, burn and transfers
-  // test ids
+  // O test account balnce after combinations of mint, burn and transfers
+  // O test ids
   //    L> Need to return block id after creating it
+  // Dedup reducer test
   // test archived retrival of archived blocks
   // create many archives
 

@@ -20,6 +20,7 @@ import CertifiedData "mo:base/CertifiedData";
 import Set "mo:map/Set";
 import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
+//import Service "service";
 
 module {
     public type Mem = {
@@ -766,5 +767,47 @@ module {
 
       return Vec.toArray(results);
     };
+
+    /// ILDE: from ICDev
+    /// Returns the certificate for the ledger
+    ///
+    /// This function returns the certificate for the ledger.
+    ///
+    /// Returns:
+    /// - The data certificate (nullable)
+    // public func get_tip_certificate() : ?Service.DataCertificate{
+    //   debug if(debug_channel.certificate) D.print("in get tip certificate");
+    //   switch(environment){
+    //     case(null){};
+    //     case(?env){
+    //       debug if(debug_channel.certificate) D.print("have env");
+    //       switch(env.get_certificate_store){
+    //         case(null){};
+    //         case(?gcs){
+    //           debug if(debug_channel.certificate) D.print("have gcs");
+    //           let ct = CertTree.Ops(gcs());
+    //           let blockWitness = ct.reveal([Text.encodeUtf8("last_block_index")]);
+    //           let hashWitness = ct.reveal([Text.encodeUtf8("last_block_hash")]);
+    //           let merge = MTree.merge(blockWitness,hashWitness);
+    //           let witness = ct.encodeWitness(merge);
+    //           return ?{
+    //             certificate = switch(CertifiedData.getCertificate()){
+    //               case(null){
+    //                 debug if(debug_channel.certificate) D.print("certified returned null");
+    //                 return null;
+    //               };
+    //               case(?val) val;
+    //             };
+    //             hash_tree = witness;
+    //           };
+    //         };
+    //       };
+    //     };
+    //   };
+
+    //   return null;
+    // };
+
+
   };
 };
