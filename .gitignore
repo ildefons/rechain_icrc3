@@ -1,5 +1,5 @@
 .mops
 node_modules
 build
-test/build
+test/build/
 src/declarations

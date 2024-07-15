@@ -1,5 +1,0 @@
-type anon_class_2_1 = 
- service {
-   test: () -> (nat);
- };
-service : (record {ledgerId: principal;}) -> anon_class_2_1
