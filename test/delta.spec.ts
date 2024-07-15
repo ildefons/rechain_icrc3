@@ -82,7 +82,7 @@ describe('Delta', () => {
       }]);
       let strblock = JSON.stringify(toState(rez.blocks[0]));
       expect(strblock).toBe('{"id":"0","block":[{"Map":[["tx",{"Map":[["ts",{"Nat":"12340"}],["created_at_time",{"Nat":"1721045569580000"}],["memo",{"Blob":"0001020304"}],["caller",{"Blob":"00000000020000870101"}],["fee",{"Nat":"1000"}],["btype",{"Text":"1swap"}],["payload",{"Map":[["amt",{"Nat":"123456"}]]}]]}]]}]}');
-      // expect(rez.log_length).toBe(1n);
+      expect(rez.log_length).toBe(1n);
       expect(rez.archived_blocks.length).toBe(0);
       expect(rez.blocks.length).toBe(1);
       
