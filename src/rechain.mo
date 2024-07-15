@@ -226,7 +226,7 @@ module {
                 };
             };
 
-
+            Debug.print("before eturning successfully on rechain dispatch");
             // let fblock = addPhash(action, state.phash);
             // let encodedBlock = encodeBlock(fblock);
             // ignore history.add(encodedBlock);
@@ -585,7 +585,7 @@ module {
         let ledger_length = if(mem.lastIndex == 0 and local_ledger_length == 0) {
             0;
         } else {
-            mem.lastIndex + 1;
+            mem.lastIndex;// + 1;
         };
 
         Debug.print("have ledger length " # debug_show(ledger_length));

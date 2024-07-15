@@ -223,8 +223,8 @@ describe("Rechain ICRC3 ledger tests", () => {
       },
     };
     let r_mint = await can.add_record(my_mint_action);
-    
-    console.log("r_mint:", r_mint);
+    //let r_mint2 = await can.add_record(my_mint_action);
+    //console.log("r_mint:", r_mint);
     
     //expect(r_mint).toBe(0n);
     //let tr: TransactionRange =  {start:10n,length:3n};
@@ -239,69 +239,72 @@ describe("Rechain ICRC3 ledger tests", () => {
 
     expect(true).toBe(JSON.stringify(john0_to) === JSON.stringify(decodedBlock0.payload_to));
     expect(decodedBlock0.block_id).toBe(0n);
-    
+    console.log(my_blocks.log_length, my_blocks.blocks);
+    expect(my_blocks.log_length).toBe(1n);
   });
 
-  // it("check_last_online_ledger_position", async () => {
-  //   // destroy canister to make sure ledger size is 0
-  //   await pic.tearDown(); 
-  //   // create canister again 
-  //   pic = await PocketIc.create(process.env.PIC_URL); //ILDE create();
-  //   const fixture = await TestCan(pic, Principal.fromText("aaaaa-aa"));
-  //   can = fixture.actor;
-  //   canCanisterId = fixture.canisterId; 
+  it("check_last_online_ledger_position", async () => {
+    // destroy canister to make sure ledger size is 0
+    await pic.tearDown(); 
+    // create canister again 
+    pic = await PocketIc.create(process.env.PIC_URL); //ILDE create();
+    const fixture = await TestCan(pic, Principal.fromText("aaaaa-aa"));
+    can = fixture.actor;
+    canCanisterId = fixture.canisterId; 
 
-  //   let my_mint_action: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         mint : {
-  //             to : [bob.getPrincipal().toUint8Array()],
-  //             amt : 100n,
-  //         },
-  //     },
-  //   };
+    let my_mint_action: Action = {
+      ts : 0n,
+      created_at_time : [0n], //?Nat64
+      memo: [], //?Blob;
+      caller: jo.getPrincipal(),  
+      fee: [], //?Nat
+      payload : {
+          mint : {
+              to : [bob.getPrincipal().toUint8Array()],
+              amt : 100n,
+          },
+      },
+    };
 
-  //   let i = 0n;
-  //   const num_blocks = 10n;
-  //   for (; i < num_blocks; i++) {
-  //     let r = await can.add_record(my_mint_action);
-  //   }
+    let i = 0n;
+    const num_blocks = 10n;
+    for (; i < num_blocks; i++) {
+      let r = await can.add_record(my_mint_action);
+    }
 
-  //   let my_block_args: GetBlocksArgs = [
-  //      {start:0n,length: num_blocks},
-  //   ]
+    let my_block_args: GetBlocksArgs = [
+       {start:0n,length: num_blocks},
+    ]
 
-  //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
+    let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
  
-  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
+    expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
 
-  //   const num_blocks2 = 11n;
-  //   my_block_args = [
-  //     {start:0n,length: num_blocks2},
-  //   ]
+    const num_blocks2 = 11n;
+    my_block_args = [
+      {start:0n,length: num_blocks2},
+    ]
 
-  //   my_blocks = await can.icrc3_get_blocks(my_block_args);
+    my_blocks = await can.icrc3_get_blocks(my_block_args);
 
-  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
+    expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
 
-  //   const num_blocks3 = 9n;
-  //   my_block_args = [
-  //     {start:0n,length: num_blocks3},
-  //   ]
+    const num_blocks3 = 9n;
+    my_block_args = [
+      {start:0n,length: num_blocks3},
+    ]
 
-  //   my_blocks = await can.icrc3_get_blocks(my_block_args);
+    my_blocks = await can.icrc3_get_blocks(my_block_args);
 
-  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks3);
+    expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks3);
+    expect(BigInt(my_blocks.log_length)).toBe(num_blocks);
 
-  //   // for (let i=0; i < num_blocks3; i++) {
-  //   //   console.log(i,my_blocks.blocks[i].id);      
-  //   // }
 
-  // });
+    // for (let i=0; i < num_blocks3; i++) {
+    //   console.log(i,my_blocks.blocks[i].id);      
+    // }
+
+  });
 
   // it("add_mint_record1", async () => {
   //   let my_action: Action = {
@@ -332,7 +335,7 @@ describe("Rechain ICRC3 ledger tests", () => {
   //     },
   //   };
   //   let r = await can.add_record(my_action);
-  //   expect(r).toBe(0n);
+  //   expect(true).toBe('Ok' in r);
   // });
 
   // it("add_mint_burn_check1", async () => {
@@ -344,7 +347,7 @@ describe("Rechain ICRC3 ledger tests", () => {
   //     fee: [], //?Nat
   //     payload : {
   //         mint : {
-  //             to : [bob.getPrincipal().toUint8Array()],
+  //             to : [john4.getPrincipal().toUint8Array()],
   //             amt : 100n,
   //         },
   //     },
@@ -358,7 +361,7 @@ describe("Rechain ICRC3 ledger tests", () => {
   //     payload : {
   //         burn : {
   //             amt : 50n,
-  //             from : [bob.getPrincipal().toUint8Array()],
+  //             from : [john4.getPrincipal().toUint8Array()],
   //         },
   //     },
   //   };
@@ -367,7 +370,7 @@ describe("Rechain ICRC3 ledger tests", () => {
 
   //   //{ owner : Principal; subaccount : ?Blob };
   //   let my_account: Account = {
-  //     owner : bob.getPrincipal(),
+  //     owner : john4.getPrincipal(),
   //     subaccount: [], 
   //   };
   //   let r_bal = await can.icrc1_balance_of(my_account);  
@@ -399,8 +402,6 @@ describe("Rechain ICRC3 ledger tests", () => {
   //   expect(i).toBe(5n);
   // });
 
-
-
   // it("retrieve_blocks_online1", async () => {
   //   //let tr: TransactionRange =  {start:10n,length:3n};
   //   let my_block_args: GetBlocksArgs = [
@@ -419,8 +420,6 @@ describe("Rechain ICRC3 ledger tests", () => {
   //   //     archived_blocks : [ArchivedTransactionResponse];
   //   // };
   //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
-  //   console.log("blocks");
-  //   console.log(my_blocks.blocks[0]);
   //   expect(my_blocks.blocks.length).toBe(3);
   // });
 
@@ -438,6 +437,99 @@ describe("Rechain ICRC3 ledger tests", () => {
   //   expect(decodedBlock0.block_id).toBe(0n);
   //   expect(decodedBlock1.block_id).toBe(1n);
   //   expect(my_blocks.blocks.length).toBe(2);
+  // });
+
+  // it("check_balance_afater_mints_burns_transfers1", async () => {
+  //   let my_mint_action1: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         mint : {
+  //             to : [john8.getPrincipal().toUint8Array()],
+  //             amt : 100n,
+  //         },
+  //     },
+  //   };
+  //   let my_burn_action1: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         burn : {
+  //             amt : 50n,
+  //             from : [john8.getPrincipal().toUint8Array()],
+  //         },
+  //     },
+  //   };
+  //   let my_mint_action2: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         mint : {
+  //             to : [john9.getPrincipal().toUint8Array()],
+  //             amt : 1000n,
+  //         },
+  //     },
+  //   };
+  //   let my_burn_action2: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         burn : {
+  //             amt : 500n,
+  //             from : [john9.getPrincipal().toUint8Array()],
+  //         },
+  //     },
+  //   };
+  //   let my_transfer_action1: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         transfer : {
+  //             amt : 100n,
+  //             from : [john9.getPrincipal().toUint8Array()],
+  //             to: [john8.getPrincipal().toUint8Array()],
+  //         },
+  //     },
+  //   };
+
+  //   let r_mint1 = await can.add_record(my_mint_action1);
+  //   let r_burn1 = await can.add_record(my_burn_action1);
+  //   let r_mint2 = await can.add_record(my_mint_action2);
+  //   let r_burn2 = await can.add_record(my_burn_action2);
+
+  //   let my_account1: Account = {
+  //     owner : john8.getPrincipal(),
+  //     subaccount: [], 
+  //   };
+  //   let r_bal1 = await can.icrc1_balance_of(my_account1);  
+  //   expect(r_bal1).toBe(50n);
+
+  //   let my_account2: Account = {
+  //     owner : john9.getPrincipal(),
+  //     subaccount: [], 
+  //   };
+  //   let r_bal2 = await can.icrc1_balance_of(my_account2);  
+  //   expect(r_bal2).toBe(500n);
+
+  //   let r_transfer1 = await can.add_record(my_transfer_action1);
+  //   let r_bal3 = await can.icrc1_balance_of(my_account2); 
+  //   console.log("balance of john9:",r_bal3); 
+  //   expect(r_bal3).toBe(400n);
   // });
 
   // O check bugs in get_blocks (-1)

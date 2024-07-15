@@ -385,6 +385,8 @@ actor Self {
         let ret = chain.dispatch(x);  //handle error
         //add block to ledger
 
+        Debug.print(debug_show(ret));
+
         return ret;
 
         // switch (ret) {
