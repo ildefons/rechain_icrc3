@@ -32,12 +32,13 @@ module {
                         case null 0;
                         case (?Nat) Nat;
                     }; 
-                    //ILDEe    
+                    //ILDEe  
                     ignore do ? { if (fee != config.FEE) return #Err(#BadFee({ expected_fee = config.FEE })); };
                     //let ?from_bacc = accountToBlob(p.from) else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
                     //ILDEb
                     let from_principal_blob = p.from[0];
-                    let from_subaccount_blob = p.from[1];
+                    //let from_subaccount_blob = p.from[1];Debug.print("t112");
+                    let from_subaccount_blob = if(p.from.size() > 1) p.from[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
                     let from_principal_principal = Principal.fromBlob(from_principal_blob);
                     let from_bacc = Principal.toLedgerAccount(from_principal_principal, ?from_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
@@ -45,8 +46,10 @@ module {
                     //let ?to_bacc = accountToBlob(p.to) else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
                     //ILDEBegin
                     let to_principal_blob = p.to[0];
-                    let to_subaccount_blob = p.to[1];
+                    //let to_subaccount_blob = p.to[1];
+                    let to_subaccount_blob = if(p.to.size() > 1) p.to[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
                     let to_principal_principal = Principal.fromBlob(to_principal_blob);
+                    
                     let to_bacc = Principal.toLedgerAccount(to_principal_principal, ?to_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
                     //IlDEEnd                    
