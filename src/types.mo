@@ -51,7 +51,7 @@ module {
       archiveIndexType : SW.IndexType;
       maxRecordsToArchive : Nat;
       archiveCycles : Nat;
-      archiveControllers : ??[Principal];
+      archiveControllers : ?[Principal];
       supportedBlocks : [Value];
     };
     
