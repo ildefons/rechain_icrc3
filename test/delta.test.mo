@@ -82,7 +82,7 @@ actor Self {
     };
 
     var chain = rechain.Chain<Action, ActionError>({
-        args = null;
+        settings = {rechain.DEFAULT_SETTINGS with supportedBlocks = ["MYNEWBLOCK"]; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
         mem = chain_mem;
         encodeBlock = encodeBlock;
         addPhash = func(a, phash) = #Blob("0" : Blob);

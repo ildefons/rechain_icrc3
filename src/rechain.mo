@@ -6,6 +6,20 @@ import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 
+/*
+  TODO important:
+  1) icrc3 certificates
+  2) motoko system capabilities + newest base library + newest motoko compilers
+  3) when creating new archive canister update controllers 
+  4) remove all comments unless providing info
+  5) remove Debug.print
+  6) add icrc3 function for supportedBlocks
+
+  7) Test scenario when archive canister is offline and we add transactions
+  8) Test upgrade rechain user canister and check if memory persists
+  9) Test for memory leak - adding 1mil records that result in insignificant or no state changes, and check if memory gets bloated. Memory should stay small
+
+*/
 import T "./types";
 
 import Sha256 "mo:sha2/Sha256";
@@ -70,6 +84,18 @@ module {
     public type Transaction = T.Value;
     public type AddTransactionsResponse = T.AddTransactionsResponse;
 
+    public let DEFAULT_SETTINGS =  {
+          maxActiveRecords = 2000;    //ILDE: max size of ledger before archiving (state.history)
+          settleToRecords = 1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
+          maxRecordsInArchiveInstance = 10_000_000; //ILDE: if archive full, we create a new one
+          maxArchivePages  = 62500;      //ILDE: Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
+          archiveIndexType = #Stable;
+          maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
+          archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
+          archiveControllers = null;
+          supportedBlocks = [];
+        } : T.InitArgs;
+
     /// ILDE: copied from ICDev ICRC3  Types implementation 
     /// The Interface for the Archive canister
     // public type ArchiveInterface = actor {
@@ -92,14 +118,11 @@ module {
     // };
     public class Chain<A,E>({
         mem: Mem;
-        //mem: Mem<A>;
-        encodeBlock: (A) -> T.Value;   //ILDE: I changed B--->A 
-        //addPhash: (A, phash: Blob) -> B;
+        encodeBlock: (A) -> T.Value;   
         addPhash: (T.Value, phash: Blob) -> T.Value;
-        //hashBlock: (Block) -> Blob;
         hashBlock: (T.Value) -> Blob;
         reducers : [ActionReducer<A,E>];
-        args: ?T.InitArgs;
+        settings: ?T.InitArgs;
         }) {
 
         let history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
@@ -120,32 +143,7 @@ module {
             // archives = Map.new<Principal, T.TransactionRange>();
             //ledgerCanister = caller;
             constants = {
-                archiveProperties = switch(args){
-                    case(_){
-                        {
-                        var maxActiveRecords = 100;//2000;    //ILDE: max size of ledger before archiving (state.history)
-                        var settleToRecords = 30;//1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
-                        var maxRecordsInArchiveInstance = 120;//10_000_000;    //ILDE: if archive full, we create a new one
-                        var maxArchivePages  = 62500;      //ILDE: Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
-                        var archiveIndexType = #Stable;
-                        var maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
-                        var archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
-                        var archiveControllers = null;
-                        };
-                    };   // ILDE: TBD (requires adding "args" parameter to ildeChain constructor interface)
-                    // case(?val){
-                    //     {
-                    //     var maxActiveRecords = val.maxActiveRecords;
-                    //     var settleToRecords = val.settleToRecords;
-                    //     var maxRecordsInArchiveInstance = val.maxRecordsInArchiveInstance;
-                    //     var maxArchivePages  = val.maxArchivePages;
-                    //     var archiveIndexType = val.archiveIndexType;
-                    //     var maxRecordsToArchive = val.maxRecordsToArchive;
-                    //     var archiveCycles = val.archiveCycles;
-                    //     var archiveControllers = val.archiveControllers;   // ILDE: this is set to control archive canisters (plus the ledger canister), if this is null the canister controller becomes also the archive controller
-                    //     };
-                    // };
-                };
+                archiveProperties = Option.get(args, DEFAULT_SETTINGS);
             };
         };
 
@@ -286,7 +284,7 @@ module {
                 Debug.print("aa1");
                 let newArchive = await Archive.archive({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-                        indexType = #Stable;
+                        indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = 0;
                 }); 
@@ -337,7 +335,7 @@ module {
                     };
                     let newArchive = await Archive.archive({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-                        indexType = #Stable;
+                        indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = lastArchive.1.start + lastArchive.1.length;
                     });
@@ -500,14 +498,7 @@ module {
         //supportedBlocks = Iter.toArray<BlockType>(Vec.vals(state.supportedBlocks)); //ILDE: not used
         bCleaning = state.bCleaning;
         constants = {
-          archiveProperties = {
-            maxActiveRecords = state.constants.archiveProperties.maxActiveRecords;
-            settleToRecords = state.constants.archiveProperties.settleToRecords;
-            maxRecordsInArchiveInstance = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-            maxRecordsToArchive = state.constants.archiveProperties.maxRecordsToArchive;
-            archiveCycles = state.constants.archiveProperties.archiveCycles;
-            archiveControllers = state.constants.archiveProperties.archiveControllers;
-          };
+          archiveProperties = state.constants.archiveProperties;
         };
       };
     };       

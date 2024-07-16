@@ -38,7 +38,7 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveI
   stable var memstore = SW.init({
       maxRecords = args.maxRecords;
       indexType = args.indexType;
-      maxPages = 62500;
+      maxPages = args.maxPages;
   });
  
   let sw = SW.StableWriteOnly(?memstore);
