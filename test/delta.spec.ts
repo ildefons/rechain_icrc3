@@ -43,9 +43,8 @@ describe('Delta', () => {
     afterAll(async () => {
       await pic.tearDown();  //ILDE: this means "it removes the replica"
     });
-  
+
     it('empty dispatch', async () => {
-      
       let r = await can.dispatch([]);
       expect(r.length).toBe(0);
     });
@@ -122,6 +121,8 @@ describe('Delta', () => {
       
     });
 
+
+
     async function getArchived(arch_param:ArchivedTransactionResponse) : Promise<GetBlocksResult> {
       let archive_principal = Principal.fromText(toState(arch_param).callback[0]);
       const archive_actor = pic.createActor<TestService>(TestIdlFactory, archive_principal);
@@ -173,7 +174,6 @@ describe('Delta', () => {
           length: 800n
       }]);
 
-
       expect(rez.blocks[0].id).toBe(571n);
       expect(rez.blocks[ rez.blocks.length - 1].id).toBe(600n);
 
@@ -205,5 +205,35 @@ describe('Delta', () => {
         await pic.tick(2);
       }
     }
+
+
+    it('icrc3_get_blocks request 1000 blocks', async () => {
+      let rez = await can.icrc3_get_blocks([{
+          start: 0n,
+          length: 1000n
+      }]);
+   
+      
+       expect(rez.log_length).toBe(601n);
+  
+    });
+
+    it('icrc3_get_blocks 3 requested ranged', async () => {
+      let rez = await can.icrc3_get_blocks([{
+          start: 0n,
+          length: 150n
+        }, {
+          start: 50n,
+          length: 300n
+        }, {
+          start: 550n,
+          length: 630n
+      }]);
+   
+      let jstr = JSON.stringify(toState(rez.archived_blocks));
+
+      expect(jstr).toBe('[{"args":[{"start":"0","length":"120"},{"start":"50","length":"70"}],"callback":["lqy7q-dh777-77777-aaaaq-cai","icrc3_get_blocks"]},{"args":[{"start":"120","length":"30"},{"start":"120","length":"120"}],"callback":["lz3um-vp777-77777-aaaba-cai","icrc3_get_blocks"]},{"args":[{"start":"240","length":"110"}],"callback":["l62sy-yx777-77777-aaabq-cai","icrc3_get_blocks"]},{"args":[{"start":"550","length":"21"}],"callback":["lm4fb-uh777-77777-aaacq-cai","icrc3_get_blocks"]}]')
+  
+    });
 
 });
