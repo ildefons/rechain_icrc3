@@ -12,4 +12,6 @@ stable-write-only = "https://github.com/skilesare/StableWriteOnly.mo#v0.1.0@02e9
 [dev-dependencies]
 itertools = "0.2.1"
 
+cert = "https://github.com/nomeata/ic-certification"
+
 

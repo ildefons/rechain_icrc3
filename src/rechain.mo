@@ -8,7 +8,7 @@ import Nat "mo:base/Nat";
 
 /*
   TODO important:
-  1) icrc3 certificates
+  1) ---->icrc3 certificates
   2) motoko system capabilities + newest base library + newest motoko compilers
   3) when creating new archive canister update controllers 
   4) remove all comments unless providing info
@@ -19,7 +19,13 @@ import Nat "mo:base/Nat";
   8) Test upgrade rechain user canister and check if memory persists
   9) Test for memory leak - adding 1mil records that result in insignificant or no state changes, and check if memory gets bloated. Memory should stay small
 
+  Other:
+  Phash tests
+  Timer of archive cretion from 0 to original 10 sec
+  Test what happens if archive needs to be created when still previous one is being created
+  Use archive index type
 */
+
 import T "./types";
 
 import Sha256 "mo:sha2/Sha256";
@@ -36,7 +42,15 @@ import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
 //import Service "service";
 
+import CertTree "mo:cert/CertTree";
+import Option "mo:base/Option";
+
 module {
+    /// Represents the environment object passed to the ICRC3 class (cp from ICDev code)
+    public type Environment = ?{
+      updated_certification : ?((Blob, Nat) -> Bool); //called when a certification has been made
+      get_certificate_store : ?(() -> CertTree.Store); //needed to pass certificate store to the class
+    };
     public type Mem = {
         history : SWB.StableData<T.Value>;
         var phash : ?Blob;   // ILDE: I allow to be null in case of first block
@@ -44,7 +58,9 @@ module {
         var firstIndex : Nat;
         var canister: ?Principal;
         archives : Map.Map<Principal, T.TransactionRange>;
+        cert_store: CertTree.Store;
     };
+
     public func Mem() : Mem {
         {
             history = SWB.SlidingWindowBufferNewMem<T.Value>();
@@ -53,6 +69,7 @@ module {
             var firstIndex = 0; //ILDE
             var canister = null; //ILDE
             archives = Map.new<Principal, T.TransactionRange>(); //ILDE
+            cert_store = CertTree.newStore();//ILDE: Certificate tree storage
         }
     };
     public type Value = T.Value;
@@ -143,12 +160,28 @@ module {
             // archives = Map.new<Principal, T.TransactionRange>();
             //ledgerCanister = caller;
             constants = {
-                archiveProperties = Option.get(args, DEFAULT_SETTINGS);
+                archiveProperties = Option.get(settings, DEFAULT_SETTINGS);
             };
         };
 
         /// The IC actor used for updating archive controllers
         private let ic : T.IC = actor "aaaaa-aa";
+
+        /// ILDE: new methods to deal with the certificate tree storage
+        private func updated_certification(cert: Blob, lastIndex: Nat) : Bool{
+          CertTree.Ops(mem.cert_store).setCertifiedData();
+          return true;
+        };
+        private func get_certificate_store() : CertTree.Store {
+          return mem.cert_store;
+        };
+        private func get_environment() : Environment{
+          ?{
+            updated_certification = ?updated_certification;
+            get_certificate_store = ?get_certificate_store;
+          };
+        };
+        /// ILDE: end of new methods to deal with the certificate tree storage
 
         //let history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
         public func print_archives() : () {
@@ -230,6 +263,36 @@ module {
             // let encodedBlock = encodeBlock(fblock);
             // ignore history.add(encodedBlock);
             // state.phash := hashBlock(encodedBlock);
+
+            //debug if(debug_channel.add_record) D.print("about to certify " # debug_show(state.latest_hash));
+
+            //ILDE: from ICDev: certify the new record if the cert store is provided
+            // switch(environment){
+            //   case(null){};
+            //   case(?env){
+
+            //     switch(env.get_certificate_store, state.latest_hash){
+                  
+            //       case(?gcs, ?latest_hash){
+            //         debug if(debug_channel.add_record) D.print("have store" # debug_show(gcs()));
+            //         let ct = CertTree.Ops(gcs());
+            //         ct.put([Text.encodeUtf8("last_block_index")], encodeBigEndian(state.lastIndex));
+            //         ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
+            //         ct.setCertifiedData();
+            //       };
+            //       case(_){};
+            //     };
+                
+            //     switch(env.updated_certification, state.latest_hash){
+                  
+            //       case(?uc, ?latest_hash){
+            //         debug if(debug_channel.add_record) D.print("have cert update");
+            //         ignore uc(latest_hash, state.lastIndex);
+            //       };
+            //       case(_){};
+            //     };
+            //   };
+            // };
 
             #Ok(blockId);
         };
@@ -495,7 +558,7 @@ module {
         firstIndex = mem.firstIndex;
         archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
         ledgerCanister = mem.canister;
-        //supportedBlocks = Iter.toArray<BlockType>(Vec.vals(state.supportedBlocks)); //ILDE: not used
+        //supportedBlocks = Iter.toArray<T.BlockType>(Vec.vals(state.constants.supportedBlocks)); //ILDE: not used
         bCleaning = state.bCleaning;
         constants = {
           archiveProperties = state.constants.archiveProperties;
@@ -766,6 +829,7 @@ module {
     ///
     /// Returns:
     /// - The data certificate (nullable)
+
     // public func get_tip_certificate() : ?Service.DataCertificate{
     //   debug if(debug_channel.certificate) D.print("in get tip certificate");
     //   switch(environment){

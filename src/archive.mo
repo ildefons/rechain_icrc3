@@ -6,6 +6,8 @@ import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
 
+import Nat64 "mo:base/Nat64";
+
 shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveInitArgs) = this {
 
 
@@ -38,9 +40,9 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveI
   stable var memstore = SW.init({
       maxRecords = args.maxRecords;
       indexType = args.indexType;
-      maxPages = args.maxPages;
+      maxPages = Nat64.fromNat(args.maxPages);
   });
- 
+
   let sw = SW.StableWriteOnly(?memstore);
 
   public shared ({ caller }) func append_transactions(txs : [Transaction]) : async AddTransactionsResponse {

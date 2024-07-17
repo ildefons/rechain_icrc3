@@ -41,7 +41,10 @@ module {
 
     public type Transaction = Value;
 
-
+    public type BlockType = {
+        block_type : Text;
+        url : Text;
+    };
 
     public type InitArgs = {
       maxActiveRecords : Nat;
@@ -52,9 +55,20 @@ module {
       maxRecordsToArchive : Nat;
       archiveCycles : Nat;
       archiveControllers : ?[Principal];
-      supportedBlocks : [Value];
+      supportedBlocks : [BlockType];
     };
-    
+//     {
+//     archiveControllers : ?[Principal];
+//     archiveCycles : Nat;
+//     archiveIndexType : IndexType;
+//     maxActiveRecords : Nat;
+//     maxArchivePages : Nat;
+//     maxRecordsInArchiveInstance : Nat;
+//     maxRecordsToArchive : Nat;
+//     settleToRecords : Nat;
+//     supportedBlocks : [{block_type : Text; url : Text}]
+//   }
+
     public type canister_settings = {
         controllers : ?[Principal];
         freezing_threshold : ?Nat;
@@ -69,17 +83,12 @@ module {
         } -> async ();
     };
 
-    public type BlockType = {
-        block_type : Text;
-        url : Text;
-    };
-
     public type Stats = {
         localLedgerSize : Nat;
         lastIndex: Nat;
         firstIndex: Nat;
         archives: [(Principal, TransactionRange)];
-        //supportedBlocks: [BlockType]; //ILDE: not used
+        //supportedBlocks: [BlockType]; 
         ledgerCanister : ?Principal;
         bCleaning : Bool;
     
@@ -90,7 +99,11 @@ module {
             maxRecordsInArchiveInstance : Nat;
             maxRecordsToArchive : Nat;
             archiveCycles : Nat;
-            archiveControllers : ??[Principal];
+            archiveControllers : ?[Principal];
+
+            archiveIndexType : SW.IndexType;
+            maxArchivePages : Nat;
+            supportedBlocks : [BlockType];
         };
         };
     };
