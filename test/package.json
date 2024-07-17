@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "test": "./build.sh && jest -c ./jest.config.ts",
-    "test:delta": "NO_MOTOKO_OUTPUT=true jest -c ./jest.config.ts -t 'Delta'"
+    "test:delta": "NO_MOTOKO_OUTPUT=true jest -c ./jest.config.ts -t 'Delta'",
+    "test:cert": "NO_MOTOKO_OUTPUT=false jest -c ./jest.config.ts -t 'Cert'"
   },
   "dependencies": {
     "@dfinity/agent": "^1.0.0",
