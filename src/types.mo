@@ -154,6 +154,14 @@ module {
       blocks: [Transaction];
     };
 
+    public type DataCertificate =  {
+        // See https://internetcomputer.org/docs/current/references/ic-interface-spec#certification
+        certificate : Blob;
+
+        // CBOR encoded hash_tree
+        hash_tree : Blob;
+    };
+
     public type ArchiveInterface = actor {
       /// Appends the given transactions to the archive.
       /// > Only the Ledger canister is allowed to call this method

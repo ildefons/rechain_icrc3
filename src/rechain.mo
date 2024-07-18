@@ -6,6 +6,8 @@ import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
+import CertifiedData "mo:base/CertifiedData";
+
 /*
   TODO important:
   1) ---->icrc3 certificates
@@ -851,38 +853,41 @@ module {
     /// Returns:
     /// - The data certificate (nullable)
 
-    // public func get_tip_certificate() : ?Service.DataCertificate{
-    //   debug if(debug_channel.certificate) D.print("in get tip certificate");
-    //   switch(environment){
-    //     case(null){};
-    //     case(?env){
-    //       debug if(debug_channel.certificate) D.print("have env");
-    //       switch(env.get_certificate_store){
-    //         case(null){};
-    //         case(?gcs){
-    //           debug if(debug_channel.certificate) D.print("have gcs");
-    //           let ct = CertTree.Ops(gcs());
-    //           let blockWitness = ct.reveal([Text.encodeUtf8("last_block_index")]);
-    //           let hashWitness = ct.reveal([Text.encodeUtf8("last_block_hash")]);
-    //           let merge = MTree.merge(blockWitness,hashWitness);
-    //           let witness = ct.encodeWitness(merge);
-    //           return ?{
-    //             certificate = switch(CertifiedData.getCertificate()){
-    //               case(null){
-    //                 debug if(debug_channel.certificate) D.print("certified returned null");
-    //                 return null;
-    //               };
-    //               case(?val) val;
-    //             };
-    //             hash_tree = witness;
-    //           };
-    //         };
-    //       };
-    //     };
-    //   };
+    public func get_tip_certificate() : ?T.DataCertificate{    // <---------IMHERE
+      Debug.print("in get tip certificate");
+      let ?environment = get_environment() else return;
+      // let ?latest_hash = mem.phash else return;
+      // let ?gcs = env.get_certificate_store else return;
+      switch(environment){
+        case(null){};
+        case(?env){
+          Debug.print("have env");
+          switch(env.get_certificate_store){
+            case(null){};
+            case(?gcs){
+              Debug.print("have gcs");
+              let ct = CertTree.Ops(gcs());
+              let blockWitness = ct.reveal([Text.encodeUtf8("last_block_index")]);
+              let hashWitness = ct.reveal([Text.encodeUtf8("last_block_hash")]);
+              let merge = MTree.merge(blockWitness,hashWitness);
+              let witness = ct.encodeWitness(merge);
+              return ?{
+                certificate = switch(CertifiedData.getCertificate()){
+                  case(null){
+                    debug if(debug_channel.certificate) D.print("certified returned null");
+                    return null;
+                  };
+                  case(?val) val;
+                };
+                hash_tree = witness;
+              };
+            };
+          };
+        };
+      };
 
-    //   return null;
-    // };
+      return null;
+    };
 
 
   };

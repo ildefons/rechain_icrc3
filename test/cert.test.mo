@@ -537,4 +537,8 @@ actor Self {
         // Array.map(actions, func(x: T.Action): DispatchResult = chain.dispatch(x));
     };
 
+    public query func icrc3_get_tip_certificate() : ?T.DataCertificate {
+        return chain.get_tip_certificate();
+    };
+
 };
