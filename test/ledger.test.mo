@@ -359,7 +359,7 @@ actor Self {
     };
 
     var chain = rechain.Chain<T.Action, T.ActionError>({ 
-        settings = {rechain.DEFAULT_SETTINGS with supportedBlocks = ["MYNEWBLOCK"]; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
+        settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
         mem = chain_mem;
         encodeBlock = encodeBlock;//func(b: T.Action) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
                                                             // action.toGenericValue: I have to write it
