@@ -20,6 +20,7 @@ import Nat "mo:base/Nat";
   9) Test for memory leak - adding 1mil records that result in insignificant or no state changes, and check if memory gets bloated. Memory should stay small
 
   Other:
+  O Undestand how new packages are added to the project of we just do "npm run test": 1) build.sh rebuilds ".mops" because it does mops sources that looks for mops.toml
   Phash tests
   Timer of archive cretion from 0 to original 10 sec
   Test what happens if archive needs to be created when still previous one is being created
@@ -108,7 +109,8 @@ module {
           maxArchivePages  = 62500;      //ILDE: Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
           archiveIndexType = #Stable;
           maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
-          archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
+          archiveCycles = 2_000_000_  updated_certification : ?((Blob, Nat) -> Bool); //called when a certification has been made
+      get_certificate_store : ?(() -> CertTree.Store);000_000; //two trillion: cycle requirement to create an archive canister 
           archiveControllers = null;
           supportedBlocks = [];
         } : T.InitArgs;
@@ -141,6 +143,33 @@ module {
         reducers : [ActionReducer<A,E>];
         settings: ?T.InitArgs;
         }) {
+
+        // ILDE: This function is from ICDev
+        /// Encodes a number as big-endian bytes
+        ///
+        /// Arguments:
+        /// - `nat`: The number to encode
+        ///
+        /// Returns:
+        /// - The encoded bytes
+        func encodeBigEndian(nat: Nat): Blob {
+          var tempNat = nat;
+          var bitCount = 0;
+          while (tempNat > 0) {
+            bitCount += 1;
+            tempNat /= 2;
+          };
+          let byteCount = (bitCount + 7) / 8;
+
+          var buffer = Vec.init<Nat8>(byteCount, 0);
+          for (i in Iter.range(0, byteCount-1)) {
+            let byteValue = Nat.div(nat, Nat.pow(256, i)) % 256;
+            Vec.put(buffer, i, Nat8.fromNat(byteValue));
+          };
+
+          Vec.reverse<Nat8>(buffer);
+          return Blob.fromArray(Vec.toArray<Nat8>(buffer));
+        };
 
         let history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
 
@@ -267,32 +296,33 @@ module {
             //debug if(debug_channel.add_record) D.print("about to certify " # debug_show(state.latest_hash));
 
             //ILDE: from ICDev: certify the new record if the cert store is provided
-            // switch(environment){
-            //   case(null){};
-            //   case(?env){
+            let env = get_environment();
+            switch(environment){
+              case(null){};
+              case(?env){
 
-            //     switch(env.get_certificate_store, state.latest_hash){
+                switch(env.get_certificate_store, mem.phash){//ILDE state.latest_hash){
                   
-            //       case(?gcs, ?latest_hash){
-            //         debug if(debug_channel.add_record) D.print("have store" # debug_show(gcs()));
-            //         let ct = CertTree.Ops(gcs());
-            //         ct.put([Text.encodeUtf8("last_block_index")], encodeBigEndian(state.lastIndex));
-            //         ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
-            //         ct.setCertifiedData();
-            //       };
-            //       case(_){};
-            //     };
+                  case(?gcs, ?latest_hash){
+                    Debug.print("have store" # debug_show(gcs()));
+                    let ct = CertTree.Ops(gcs());
+                    ct.put([Text.encodeUtf8("last_block_index")], encodeBigEndian(mem.lastIndex));
+                    ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
+                    ct.setCertifiedData();
+                  };
+                  case(_){};
+                };
                 
-            //     switch(env.updated_certification, state.latest_hash){
+                switch(env.updated_certification, mem.phash){
                   
-            //       case(?uc, ?latest_hash){
-            //         debug if(debug_channel.add_record) D.print("have cert update");
-            //         ignore uc(latest_hash, state.lastIndex);
-            //       };
-            //       case(_){};
-            //     };
-            //   };
-            // };
+                  case(?uc, ?latest_hash){
+                    Debug.print("have cert update");
+                    ignore uc(latest_hash, mem.lastIndex);
+                  };
+                  case(_){};
+                };
+              };
+            };
 
             #Ok(blockId);
         };
