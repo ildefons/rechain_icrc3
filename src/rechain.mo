@@ -5,7 +5,7 @@ import Blob "mo:base/Blob";
 import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
-
+import Nat8 "mo:base/Nat8";
 /*
   TODO important:
   1) ---->icrc3 certificates
@@ -109,8 +109,7 @@ module {
           maxArchivePages  = 62500;      //ILDE: Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
           archiveIndexType = #Stable;
           maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
-          archiveCycles = 2_000_000_  updated_certification : ?((Blob, Nat) -> Bool); //called when a certification has been made
-      get_certificate_store : ?(() -> CertTree.Store);000_000; //two trillion: cycle requirement to create an archive canister 
+          archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
           archiveControllers = null;
           supportedBlocks = [];
         } : T.InitArgs;
@@ -221,7 +220,7 @@ module {
         //     state.canister := ?canister;
         // };
 
-        public func dispatch( action: A ) : ({#Ok : BlockId;  #Err: E }) {
+        public func dispatch<system>( action: A ) : ({#Ok : BlockId;  #Err: E }) {
             //ILDE: The way I serve the reducers does not change
             // Execute reducers
             let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
@@ -279,7 +278,7 @@ module {
                 switch(state.cleaningTimer){ 
                     case(null){ //only need one active timer
                         Debug.print("starting time because len: " # Nat.toText(history.len()));
-                        state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);  //<--- IM HERE
+                        state.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);  //<--- IM HERE
                     };
                     case(_){
                         //Debug.print("Time is already set, so we don't create a new one");
@@ -296,37 +295,29 @@ module {
             //debug if(debug_channel.add_record) D.print("about to certify " # debug_show(state.latest_hash));
 
             //ILDE: from ICDev: certify the new record if the cert store is provided
-            let env = get_environment();
-            switch(environment){
-              case(null){};
-              case(?env){
-
-                switch(env.get_certificate_store, mem.phash){//ILDE state.latest_hash){
-                  
-                  case(?gcs, ?latest_hash){
-                    Debug.print("have store" # debug_show(gcs()));
-                    let ct = CertTree.Ops(gcs());
-                    ct.put([Text.encodeUtf8("last_block_index")], encodeBigEndian(mem.lastIndex));
-                    ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
-                    ct.setCertifiedData();
-                  };
-                  case(_){};
-                };
-                
-                switch(env.updated_certification, mem.phash){
-                  
-                  case(?uc, ?latest_hash){
-                    Debug.print("have cert update");
-                    ignore uc(latest_hash, mem.lastIndex);
-                  };
-                  case(_){};
-                };
-              };
-            };
+            
+            dispatch_cert();
 
             #Ok(blockId);
         };
         
+        private func dispatch_cert() : () {
+          let ?env = get_environment() else return;
+          let ?latest_hash = mem.phash else return;
+          let ?gcs = env.get_certificate_store else return;
+
+          Debug.print("have store" # debug_show(gcs()));
+          let ct = CertTree.Ops(gcs());
+          ct.put([Text.encodeUtf8("last_block_index")], encodeBigEndian(mem.lastIndex));
+          ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
+          ct.setCertifiedData();
+          
+          let ?uc = env.updated_certification else return;
+          Debug.print("have cert update");
+          ignore uc(latest_hash, mem.lastIndex);
+
+        };
+
         /// ILDE: This method is from ICDev ICRC3 implementation
 
         public func check_clean_up() : async (){

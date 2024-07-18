@@ -382,7 +382,7 @@ actor Self {
     public shared(msg) func add_record(x: T.Action): async (DispatchResult) {
         //return icrc3().add_record<system>(x, null);
 
-        let ret = chain.dispatch(x);  //handle error
+        let ret = chain.dispatch<system>(x);  //handle error
         //add block to ledger
 
         Debug.print(debug_show(ret));
@@ -404,7 +404,7 @@ actor Self {
 
     // ICRC-1
     public shared ({ caller }) func icrc1_transfer(req : ICRC.TransferArg) : async ICRC.Result {
-        let ret = transfer(caller, req);
+        let ret = transfer<system>(caller, req);
         ret;
     };
 
@@ -429,7 +429,7 @@ actor Self {
 
     // --
   
-    private func transfer(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
+    private func transfer<system>(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
         let from : ICRC.Account = {
             owner = caller;
             subaccount = req.from_subaccount;
@@ -512,7 +512,8 @@ actor Self {
             payload = payload;
         };
 
-        let ret = chain.dispatch(action);
+        let ret = chain.dispatch<system>(action);
+
         return ret;
         // switch (ret) {
         //     case (#Ok(p)) {
@@ -529,8 +530,9 @@ actor Self {
 
     public type DispatchResult = {#Ok : Nat;  #Err: T.ActionError };
 
-    public shared(msg) func dispatch(actions: [T.Action]): async [DispatchResult] {
-        Array.map(actions, func(x: T.Action): DispatchResult = chain.dispatch(x));
+    public func dispatch(actions: [T.Action]): async [DispatchResult] {
+        [];
+        // Array.map(actions, func(x: T.Action): DispatchResult = chain.dispatch(x));
     };
 
 };

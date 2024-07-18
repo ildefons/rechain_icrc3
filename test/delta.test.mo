@@ -94,8 +94,10 @@ actor Self {
 
     public type DispatchResult = {#Ok: rechain.BlockId; #Err: ActionError };
 
+    private func testt<system>(x:Action): DispatchResult { chain.dispatch<system>(x) };
+
     public shared(msg) func dispatch(actions: [Action]): async [DispatchResult] {
-        Array.map(actions, func(x:Action): DispatchResult = chain.dispatch(x));
+            []        
     };
 
 
