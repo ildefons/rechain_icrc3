@@ -188,10 +188,9 @@ module {
             let blockId = mem.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
             ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
+            // !!! ILDE:TBD
 
-<<<<<<< HEAD
-=======
-            // Debug.print("dispatch went through!");
+            Debug.print("dispatch went through!");
 
             // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
             // 2) create new block according to steps 2-4 from ICDev ICRC3 implementation
@@ -200,7 +199,6 @@ module {
             // 5... (TBD) management of archives
 
             // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
->>>>>>> f6edaa0 (archive fix and tests)
             // "encodeBlock" is responsible for this transformation
             let encodedBlock: T.Value = encodeBlock(action);
             // creat enew empty block entry
@@ -230,10 +228,8 @@ module {
                     };
                 };
             };
-<<<<<<< HEAD
-=======
 
-            // Debug.print("before eturning successfully on rechain dispatch");
+            Debug.print("before eturning successfully on rechain dispatch");
             // let fblock = addPhash(action, state.phash);
             // let encodedBlock = encodeBlock(fblock);
             // ignore history.add(encodedBlock);
@@ -242,7 +238,6 @@ module {
             //debug if(debug_channel.add_record) D.print("about to certify " # debug_show(state.latest_hash));
 
             //ILDE: from ICDev: certify the new record if the cert store is provided
->>>>>>> f6edaa0 (archive fix and tests)
             
             dispatch_cert();
 
@@ -362,9 +357,9 @@ module {
                     case(null) {Debug.trap("mem.archives unreachable")}; //unreachable;
                     case(?val) val;
                 };
-<<<<<<< HEAD
-                if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ 
-                    //ILDE: last archive is full, create a new archive
+                Debug.print("else");
+                if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
+                    Debug.print("Need a new canister");
                     if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
                         ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
                     } else{
@@ -373,13 +368,6 @@ module {
                         return;
                     };
                     let newArchive = await new_archive({
-=======
-                Debug.print("else");
-                if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
-                    Debug.print("Need a new canister");
-               
-                    let ?newArchive = await new_archive({
->>>>>>> f6edaa0 (archive fix and tests)
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
