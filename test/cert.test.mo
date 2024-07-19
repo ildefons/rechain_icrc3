@@ -15,6 +15,7 @@ import Balances "./ledger/reducers/balances";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
 import rechain "../src/rechain";
+import Trechain "../src/types";
 import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
@@ -537,7 +538,7 @@ actor Self {
         // Array.map(actions, func(x: T.Action): DispatchResult = chain.dispatch(x));
     };
 
-    public query func icrc3_get_tip_certificate() : ?T.DataCertificate {
+    public query func icrc3_get_tip_certificate() : async ?Trechain.DataCertificate {
         return chain.get_tip_certificate();
     };
 
