@@ -54,7 +54,7 @@ module {
       archiveIndexType : SW.IndexType;
       maxRecordsToArchive : Nat;
       archiveCycles : Nat;
-      archiveControllers : ?[Principal];
+      archiveControllers : [Principal];
       supportedBlocks : [BlockType];
     };
 //     {
@@ -91,21 +91,7 @@ module {
         //supportedBlocks: [BlockType]; 
         ledgerCanister : ?Principal;
         bCleaning : Bool;
-    
-        constants : {
-        archiveProperties: {
-            maxActiveRecords : Nat;
-            settleToRecords : Nat;
-            maxRecordsInArchiveInstance : Nat;
-            maxRecordsToArchive : Nat;
-            archiveCycles : Nat;
-            archiveControllers : ?[Principal];
-
-            archiveIndexType : SW.IndexType;
-            maxArchivePages : Nat;
-            supportedBlocks : [BlockType];
-        };
-        };
+        archiveProperties: InitArgs;
     };
     
     public type GetBlocksArgs = [TransactionRange];

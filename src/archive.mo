@@ -8,7 +8,7 @@ import Iter "mo:base/Iter";
 
 import Nat64 "mo:base/Nat64";
 
-shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveInitArgs) = this {
+shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.ArchiveInitArgs) = this {
 
 
 //     let debug_channel = {
@@ -35,7 +35,7 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveI
   //     public type TransactionRange = T.Current.TransactionRange;
   public type TransactionRange = T.TransactionRange;
 
-  stable var args = _args;
+  stable var args = switch(_args) { case (?a) { a }; case(null) { Debug.trap("No args provided") } };
  
   stable var memstore = SW.init({
       maxRecords = args.maxRecords;
@@ -135,7 +135,7 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : T.ArchiveI
   /// Deposit cycles into this archive canister.
   public shared func deposit_cycles() : async () {
       let amount = ExperimentalCycles.available();
-      let accepted = ExperimentalCycles.accept(amount);
+      let accepted = ExperimentalCycles.accept<system>(amount);
       assert (accepted == amount);
   };
 

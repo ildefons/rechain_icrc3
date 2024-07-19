@@ -31,7 +31,6 @@ import CertifiedData "mo:base/CertifiedData";
 
 import T "./types";
 
-import Sha256 "mo:sha2/Sha256";
 
 import Vec "mo:vector";
 import RepIndy "mo:rep-indy-hash";
@@ -39,7 +38,6 @@ import Text "mo:base/Text";
 import Timer "mo:base/Timer";
 import Archive "./archive";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
-import Set "mo:map/Set";
 import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
 //import Service "service";
@@ -112,7 +110,7 @@ module {
           archiveIndexType = #Stable;
           maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
           archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
-          archiveControllers = null;
+          archiveControllers = [];
           supportedBlocks = [];
         } : T.InitArgs;
 
@@ -139,8 +137,6 @@ module {
     public class Chain<A,E>({
         mem: Mem;
         encodeBlock: (A) -> T.Value;   
-        addPhash: (T.Value, phash: Blob) -> T.Value;
-        hashBlock: (T.Value) -> Blob;
         reducers : [ActionReducer<A,E>];
         settings: ?T.InitArgs;
         }) {
@@ -261,7 +257,7 @@ module {
             // covert vector to map to make it consistent with Value type
             let thisTrx = #Map(Vec.toArray(trx));
             // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
-            mem.phash := ?hashBlock(thisTrx);//?Blob.fromArray(RepIndy.hash_val(thisTrx));
+            mem.phash := ?Blob.fromArray(RepIndy.hash_val(thisTrx));
             // 4) Add new block to ledger/history
             //Debug.print("History size before inside:" # Nat.toText(state.history.len()));
             ignore history.add(thisTrx);
@@ -303,6 +299,30 @@ module {
             #Ok(blockId);
         };
         
+        public func upgrade_archives() : async () {
+
+            for (archivePrincipal in Map.keys(mem.archives)) {
+                let archiveActor = actor(Principal.toText(archivePrincipal)) : T.ArchiveInterface;
+                let ArchiveMgr = (system Archive.archive)(#upgrade archiveActor);
+                ignore await ArchiveMgr(null); // No change in settings
+            }
+        };
+
+        private func new_archive(initArg: T.ArchiveInitArgs) : async actor {} {
+                let ?this_canister = mem.canister else Debug.trap("No canister set");
+
+                let ArchiveMgr = (system Archive.archive)(#new {
+                  settings = ?{
+                    controllers = ?Array.append([this_canister], state.constants.archiveProperties.archiveControllers);
+                    compute_allocation = null;
+                    memory_allocation = null;
+                    freezing_threshold = null;
+                  }
+                });
+
+                await ArchiveMgr(?initArg);
+        };
+
         private func dispatch_cert() : () {
           let env = get_environment();// else return;
           let ?latest_hash = mem.phash else return;
@@ -359,7 +379,7 @@ module {
                 Debug.print("Creating a canister");
 
                 if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                    ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
+                    ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
                 } else{
                     //warning ledger will eventually overload
                     Debug.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
@@ -368,12 +388,14 @@ module {
                 };
                 //commits state and creates archive
                 Debug.print("aa1");
-                let newArchive = await Archive.archive({
+
+                let newArchive = await new_archive({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = 0;
-                }); 
+                });
+                
                 Debug.print("aa2");
                 //set archive controllers calls async
                 //ILDE: note that this method uses the costructor argument "canister" = princiapl of "ledger" canister
@@ -413,29 +435,19 @@ module {
                 if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
                     Debug.print("Need a new canister");
                     if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                        ExperimentalCycles.add(state.constants.archiveProperties.archiveCycles);
+                        ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
                     } else{
                         //warning ledger will eventually overload
                         state.bCleaning := false;
                         return;
                     };
-                    let newArchive = await Archive.archive({
+                    let newArchive = await new_archive({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = lastArchive.1.start + lastArchive.1.length;
                     });
-                    //ILDE: new way to create a archive canister
-                    // let Archive = (system Archive.archive)(#new {
-                    //   settings = ?{
-                    //     controllers = null;//?[Principal.fromActor(this)];
-                    //     compute_allocation = null;
-                    //     memory_allocation = null;
-                    //     freezing_threshold = null;
-                    //   }
-                    // });
-                    // let newArchive2 = await ArchiveObj(); // dynamically install a new 
-
+            
 
                     //ILDE state.firstIndex is update after this if/else archive creation
                     Debug.print("Have a multi archive");
@@ -571,7 +583,7 @@ module {
         state.bCleaning := false;
 
         if(bRecallAtEnd){
-            state.cleaningTimer := ?Timer.setTimer(#seconds(0), check_clean_up);
+            state.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
         };
 
         return;
@@ -595,9 +607,8 @@ module {
         ledgerCanister = mem.canister;
         //supportedBlocks = Iter.toArray<T.BlockType>(Vec.vals(state.constants.supportedBlocks)); //ILDE: not used
         bCleaning = state.bCleaning;
-        constants = {
-          archiveProperties = state.constants.archiveProperties;
-        };
+        archiveProperties = state.constants.archiveProperties;
+       
       };
     };       
 
@@ -703,9 +714,9 @@ module {
                 let end = if(history.len()==0){ // ILDE Vec.size(state.ledger)==0){
                     mem.lastIndex;//ILDE: 0;
                 } else if(thisArg.start + thisArg.length >= mem.lastIndex){
-                    mem.lastIndex - 1;//ILDE: "lastIndex - 1 is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
+                    mem.lastIndex - 1:Nat;//ILDE: "lastIndex - 1 is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
                 } else {
-                    thisArg.start + thisArg.length - 1;//ILDE
+                    thisArg.start + thisArg.length - 1:Nat;//ILDE
                     //ILDE Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))
                 };
 

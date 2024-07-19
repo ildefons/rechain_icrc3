@@ -189,10 +189,6 @@ actor Self {
         #Map(Vec.toArray(trx));
     };
 
-    func hashBlock(b: rechain.Value) : Blob {
-        Blob.fromArray(RepIndy.hash_val(b));
-    };
-
     public type testtype = {
         #A: Int;
         #B: Text;
@@ -368,8 +364,6 @@ actor Self {
                                                             // "to_candid" is different implementation in different languages
                                                             // instead  
                                                             // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
-        addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
-        hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
         reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];      //<-----REDO
     });
     
