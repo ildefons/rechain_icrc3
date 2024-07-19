@@ -10,9 +10,9 @@ import CertifiedData "mo:base/CertifiedData";
 
 /*
   TODO important:
-  1) ---->icrc3 certificates
-  2) motoko system capabilities + newest base library + newest motoko compilers
-  3) when creating new archive canister update controllers 
+  1) O icrc3 certificates
+  2) O motoko system capabilities + newest base library + newest motoko compilers
+  3) O when creating new archive canister update controllers 
   4) remove all comments unless providing info
   5) remove Debug.print
   6) add icrc3 function for supportedBlocks
@@ -40,7 +40,6 @@ import Archive "./archive";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
-//import Service "service";
 
 import CertTree "mo:cert/CertTree";
 import MTree "mo:cert/MerkleTree";
@@ -54,7 +53,7 @@ module {
     };
     public type Mem = {
         history : SWB.StableData<T.Value>;
-        var phash : ?Blob;   // ILDE: I allow to be null in case of first block
+        var phash : ?Blob;   
         var lastIndex : Nat;
         var firstIndex : Nat;
         var canister: ?Principal;
@@ -65,12 +64,12 @@ module {
     public func Mem() : Mem {
         {
             history = SWB.SlidingWindowBufferNewMem<T.Value>();
-            var phash = null; //ILDE: before Blob.fromArray([0]);
-            var lastIndex = 0; //ILDE
-            var firstIndex = 0; //ILDE
-            var canister = null; //ILDE
-            archives = Map.new<Principal, T.TransactionRange>(); //ILDE
-            cert_store = CertTree.newStore();//ILDE: Certificate tree storage
+            var phash = null; 
+            var lastIndex = 0; 
+            var firstIndex = 0; 
+            var canister = null; 
+            archives = Map.new<Principal, T.TransactionRange>();
+            cert_store = CertTree.newStore();//Certificate tree storage
         }
     };
     public type Value = T.Value;
@@ -103,37 +102,17 @@ module {
     public type AddTransactionsResponse = T.AddTransactionsResponse;
 
     public let DEFAULT_SETTINGS =  {
-          maxActiveRecords = 2000;    //ILDE: max size of ledger before archiving (state.history)
-          settleToRecords = 1000;        //ILDE: It makes sure to leave 1000 records in the ledger after archiving
-          maxRecordsInArchiveInstance = 10_000_000; //ILDE: if archive full, we create a new one
-          maxArchivePages  = 62500;      //ILDE: Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
+          maxActiveRecords = 2000;    // max size of ledger before archiving (state.history)
+          settleToRecords = 1000;        //It makes sure to leave 1000 records in the ledger after archiving
+          maxRecordsInArchiveInstance = 10_000_000; //if archive full, we create a new one
+          maxArchivePages  = 62500;      //Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
           archiveIndexType = #Stable;
-          maxRecordsToArchive = 10_000;  //ILDE: maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
+          maxRecordsToArchive = 10_000;  // maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
           archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister 
           archiveControllers = [];
           supportedBlocks = [];
         } : T.InitArgs;
 
-    /// ILDE: copied from ICDev ICRC3  Types implementation 
-    /// The Interface for the Archive canister
-    // public type ArchiveInterface = actor {
-    //   /// Appends the given transactions to the archive.
-    //   /// > Only the Ledger canister is allowed to call this method
-    //   append_transactions : shared ([Transaction]) -> async AddTransactionsResponse;
-
-    //   /// Returns the total number of transactions stored in the archive
-    //   total_transactions : shared query () -> async Nat;
-
-    //   /// Returns the transaction at the given index
-    //   get_transaction : shared query (Nat) -> async ?Transaction;
-
-    //   /// Returns the transactions in the given range
-    //   icrc3_get_blocks : shared query (TransactionRange) -> async TransactionsResult;
-
-    //   /// Returns the number of bytes left in the archive before it is full
-    //   /// > The capacity of the archive canister is 32GB
-    //   remaining_capacity : shared query () -> async Nat;
-    // };
     public class Chain<A,E>({
         mem: Mem;
         encodeBlock: (A) -> T.Value;   
@@ -141,7 +120,7 @@ module {
         settings: ?T.InitArgs;
         }) {
 
-        // ILDE: This function is from ICDev
+        // This function is from ICDev
         /// Encodes a number as big-endian bytes
         ///
         /// Arguments:
@@ -170,21 +149,9 @@ module {
 
         let history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
 
-        //ILDE: state variable (in the future I will join them all in a single variable "state"
         let state = {
-            // var canister: ?Principal = null; // ILDE: this is non-valid caniter controller until I set it up externally afater initialization 
-                                              // ILDE: I have to add this paramter because it is used by "update_controllers"
-            // var lastIndex = 0;
-            // var firstIndex = 0;
-            // var history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
-            // var phash: ?Blob = mem.phash;
-            // var ledger : Vec.Vector<Transaction> = Vec.new<Transaction>(); //ILDE: not used
-            var bCleaning = false; //ILDE: It indicates whether a archival process is on or not (only 1 possible at a time)
-            var cleaningTimer: ?Nat = null; //ILDE: This timer will be set once we reach a ledger size > maxActiveRecords (see mothod below)
-            // var latest_hash = null; //ILDE: not used because I am using "phash" above 
-            // supportedBlocks =  Vec.new<BlockType>(); //ILDE: not used
-            // archives = Map.new<Principal, T.TransactionRange>();
-            //ledgerCanister = caller;
+            var bCleaning = false; //It indicates whether a archival process is on or not (only 1 possible at a time)
+            var cleaningTimer: ?Nat = null; //This timer will be set once we reach a ledger size > maxActiveRecords (see mothod below)
             constants = {
                 archiveProperties = Option.get(settings, DEFAULT_SETTINGS);
             };
@@ -193,7 +160,6 @@ module {
         /// The IC actor used for updating archive controllers
         private let ic : T.IC = actor "aaaaa-aa";
 
-        /// ILDE: new methods to deal with the certificate tree storage
         private func updated_certification(cert: Blob, lastIndex: Nat) : Bool{
           CertTree.Ops(mem.cert_store).setCertifiedData();
           return true;
@@ -207,19 +173,12 @@ module {
             get_certificate_store = ?get_certificate_store;
           };
         };
-        /// ILDE: end of new methods to deal with the certificate tree storage
 
-        //let history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
         public func print_archives() : () {
             Debug.print(debug_show(mem.archives));
         };
-        
-        // public func set_ledger_canister( canister: Principal ) : () {
-        //     state.canister := ?canister;
-        // };
 
         public func dispatch<system>( action: A ) : ({#Ok : BlockId;  #Err: E }) {
-            //ILDE: The way I serve the reducers does not change
             // Execute reducers
             let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
             // Check if any reducer returned an error and terminate if so
@@ -229,7 +188,6 @@ module {
             let blockId = mem.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
             ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
-            // !!! ILDE:TBD
 
             Debug.print("dispatch went through!");
 
