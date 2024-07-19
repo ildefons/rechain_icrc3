@@ -7,7 +7,7 @@ import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import CertifiedData "mo:base/CertifiedData";
-
+import Error "mo:base/Error";
 /*
   TODO important:
   1) O icrc3 certificates
@@ -189,6 +189,18 @@ module {
             // Execute state changes if no errors
             ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
 
+<<<<<<< HEAD
+=======
+            // Debug.print("dispatch went through!");
+
+            // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
+            // 2) create new block according to steps 2-4 from ICDev ICRC3 implementation
+            // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
+            // 4) add new block to ledger
+            // 5... (TBD) management of archives
+
+            // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
+>>>>>>> f6edaa0 (archive fix and tests)
             // "encodeBlock" is responsible for this transformation
             let encodedBlock: T.Value = encodeBlock(action);
             // creat enew empty block entry
@@ -218,6 +230,19 @@ module {
                     };
                 };
             };
+<<<<<<< HEAD
+=======
+
+            // Debug.print("before eturning successfully on rechain dispatch");
+            // let fblock = addPhash(action, state.phash);
+            // let encodedBlock = encodeBlock(fblock);
+            // ignore history.add(encodedBlock);
+            // state.phash := hashBlock(encodedBlock);
+
+            //debug if(debug_channel.add_record) D.print("about to certify " # debug_show(state.latest_hash));
+
+            //ILDE: from ICDev: certify the new record if the cert store is provided
+>>>>>>> f6edaa0 (archive fix and tests)
             
             dispatch_cert();
 
@@ -233,19 +258,38 @@ module {
             }
         };
 
-        private func new_archive(initArg: T.ArchiveInitArgs) : async actor {} {
+        private func new_archive<system>(initArg: T.ArchiveInitArgs) : async ?(actor {}) {
+                Debug.print("New archive start");
                 let ?this_canister = mem.canister else Debug.trap("No canister set");
 
+                if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
+                    ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+                } else {
+                    //warning ledger will eventually overload
+                    Debug.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
+                    state.bCleaning := false;
+                    return null;
+                };
+
                 let ArchiveMgr = (system Archive.archive)(#new {
-                  settings = ?{
-                    controllers = ?Array.append([this_canister], state.constants.archiveProperties.archiveControllers);
-                    compute_allocation = null;
-                    memory_allocation = null;
-                    freezing_threshold = null;
-                  }
+                  settings = null
+                  // ?{
+                  //   controllers = ?Array.append([this_canister], state.constants.archiveProperties.archiveControllers);
+                  //   compute_allocation = null;
+                  //   memory_allocation = null;
+                  //   freezing_threshold = null;
+                  // }
                 });
 
-                await ArchiveMgr(?initArg);
+                try {
+                    return ?(await ArchiveMgr(?initArg));
+                } catch (err) {
+                    state.bCleaning := false;
+                    Debug.print("Error creating archive canister " # Error.message(err));
+                    return null;
+                };
+                
+                
         };
 
         private func dispatch_cert() : () {
@@ -253,21 +297,21 @@ module {
           let ?latest_hash = mem.phash else return;
           let ?gcs = env.get_certificate_store else return;
 
-          Debug.print("have store" # debug_show(gcs()));
+          // Debug.print("have store" # debug_show(gcs()));
           let ct = CertTree.Ops(gcs());
           ct.put([Text.encodeUtf8("last_block_index")], encodeBigEndian(mem.lastIndex));
           ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
           ct.setCertifiedData();
           
           let ?uc = env.updated_certification else return;
-          Debug.print("have cert update");
+          // Debug.print("have cert update");
           ignore uc(latest_hash, mem.lastIndex);
 
         };
 
         /// This method is from ICDev ICRC3 implementation
 
-        public func check_clean_up() : async (){
+        public func check_clean_up<system>() : async (){
 
             // preparation work: create an archive canister (start copying from ICDev)
 
@@ -293,22 +337,14 @@ module {
             let (archive_detail, available_capacity) = if(Map.size(mem.archives) == 0){ 
                 //no archive exists - create a new canister
 
-                if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                    ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
-                } else{
-                    //warning ledger will eventually overload
-                    Debug.print("Not enough cycles" # debug_show(ExperimentalCycles.balance() ));
-                    state.bCleaning := false;
-                    return;
-                };
                 //commits state and creates archive
 
-                let newArchive = await new_archive({
+                let ?newArchive = await new_archive<system>({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = 0;
-                });
+                }) else return;
                 
                 //set archive controllers calls async
 
@@ -326,6 +362,7 @@ module {
                     case(null) {Debug.trap("mem.archives unreachable")}; //unreachable;
                     case(?val) val;
                 };
+<<<<<<< HEAD
                 if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ 
                     //ILDE: last archive is full, create a new archive
                     if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
@@ -336,11 +373,18 @@ module {
                         return;
                     };
                     let newArchive = await new_archive({
+=======
+                Debug.print("else");
+                if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
+                    Debug.print("Need a new canister");
+               
+                    let ?newArchive = await new_archive({
+>>>>>>> f6edaa0 (archive fix and tests)
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = lastArchive.1.start + lastArchive.1.length;
-                    });
+                    }) else return;
             
                     let newItem = {
                         start = mem.firstIndex;

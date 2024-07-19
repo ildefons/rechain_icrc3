@@ -5,7 +5,7 @@ import Vec "mo:vector";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 import Iter "mo:base/Iter";
-
+import Time "mo:base/Time";
 import Nat64 "mo:base/Nat64";
 
 shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.ArchiveInitArgs) = this {
@@ -16,6 +16,7 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.Archive
 //       append = false;
 //       get = false;
 //     };
+  let canister_last_modified = Time.now();
 
   Debug.print("new archive created with the following args" # debug_show(_args));
 
@@ -33,7 +34,7 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.Archive
 
   //     public type TransactionRange = T.Current.TransactionRange;
   public type TransactionRange = T.TransactionRange;
-
+  
   stable var args = switch(_args) { case (?a) { a }; case(null) { Debug.trap("No args provided") } };
  
   stable var memstore = SW.init({
@@ -141,6 +142,10 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.Archive
   /// Get the remaining cylces on the server
   public query func cycles() : async Nat {
       ExperimentalCycles.balance();
+  };
+
+  public query func last_modified(): async Time.Time {
+    canister_last_modified;
   };
 
 };
