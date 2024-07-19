@@ -39,18 +39,18 @@ import Text "mo:base/Text";
 import Timer "mo:base/Timer";
 import Archive "./archive";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
-import CertifiedData "mo:base/CertifiedData";
 import Set "mo:map/Set";
 import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
 //import Service "service";
 
 import CertTree "mo:cert/CertTree";
+import MTree "mo:cert/MerkleTree";
 import Option "mo:base/Option";
 
 module {
     /// Represents the environment object passed to the ICRC3 class (cp from ICDev code)
-    public type Environment = ?{
+    public type Environment = {
       updated_certification : ?((Blob, Nat) -> Bool); //called when a certification has been made
       get_certificate_store : ?(() -> CertTree.Store); //needed to pass certificate store to the class
     };
@@ -206,7 +206,7 @@ module {
           return mem.cert_store;
         };
         private func get_environment() : Environment{
-          ?{
+          {
             updated_certification = ?updated_certification;
             get_certificate_store = ?get_certificate_store;
           };
@@ -304,7 +304,7 @@ module {
         };
         
         private func dispatch_cert() : () {
-          let ?env = get_environment() else return;
+          let env = get_environment();// else return;
           let ?latest_hash = mem.phash else return;
           let ?gcs = env.get_certificate_store else return;
 
@@ -425,6 +425,18 @@ module {
                         maxPages = state.constants.archiveProperties.maxArchivePages;
                         firstIndex = lastArchive.1.start + lastArchive.1.length;
                     });
+                    //ILDE: new way to create a archive canister
+                    // let Archive = (system Archive.archive)(#new {
+                    //   settings = ?{
+                    //     controllers = null;//?[Principal.fromActor(this)];
+                    //     compute_allocation = null;
+                    //     memory_allocation = null;
+                    //     freezing_threshold = null;
+                    //   }
+                    // });
+                    // let newArchive2 = await ArchiveObj(); // dynamically install a new 
+
+
                     //ILDE state.firstIndex is update after this if/else archive creation
                     Debug.print("Have a multi archive");
                     let newItem = {
@@ -853,39 +865,34 @@ module {
     /// Returns:
     /// - The data certificate (nullable)
 
-    public func get_tip_certificate() : ?T.DataCertificate{    // <---------IMHERE
+    public func get_tip_certificate() : ?T.DataCertificate { 
       Debug.print("in get tip certificate");
-      let ?environment = get_environment() else return;
-      // let ?latest_hash = mem.phash else return;
-      // let ?gcs = env.get_certificate_store else return;
-      switch(environment){
+      let env = get_environment();// else return;
+      
+      Debug.print("have env");
+      switch(env.get_certificate_store){
         case(null){};
-        case(?env){
-          Debug.print("have env");
-          switch(env.get_certificate_store){
-            case(null){};
-            case(?gcs){
-              Debug.print("have gcs");
-              let ct = CertTree.Ops(gcs());
-              let blockWitness = ct.reveal([Text.encodeUtf8("last_block_index")]);
-              let hashWitness = ct.reveal([Text.encodeUtf8("last_block_hash")]);
-              let merge = MTree.merge(blockWitness,hashWitness);
-              let witness = ct.encodeWitness(merge);
-              return ?{
-                certificate = switch(CertifiedData.getCertificate()){
-                  case(null){
-                    debug if(debug_channel.certificate) D.print("certified returned null");
-                    return null;
-                  };
-                  case(?val) val;
-                };
-                hash_tree = witness;
+        case(?gcs){
+          Debug.print("have gcs");
+          let ct = CertTree.Ops(gcs());
+          let blockWitness = ct.reveal([Text.encodeUtf8("last_block_index")]);
+          let hashWitness = ct.reveal([Text.encodeUtf8("last_block_hash")]);
+          let merge = MTree.merge(blockWitness,hashWitness);
+          let witness = ct.encodeWitness(merge);
+          return ?{
+            certificate = switch(CertifiedData.getCertificate()){
+              case(null){
+                Debug.print("certified returned null");
+                return null;
               };
+              case(?val) val;
             };
+            hash_tree = witness;
           };
         };
       };
-
+        
+      
       return null;
     };
 
