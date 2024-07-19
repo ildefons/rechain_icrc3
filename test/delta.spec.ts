@@ -192,12 +192,41 @@ describe('Delta', () => {
 
     it('upgrade canister', async () => {
       let can_last_updated = await can.last_modified();
+      await passTime(10);
       await pic.upgradeCanister({ canisterId: canCanisterId, wasm: WASM_PATH });
       let can_last_updated_after = await can.last_modified();
       expect(Number(can_last_updated)).toBeLessThan(Number(can_last_updated_after));
+
     });
 
+    it('upgrade canister + archives', async () => {
+      let archives = await can.icrc3_get_archives({from:[]});
+      let archive_times = [];
+      for (let i=0; i<archives.length; i++) {
+        let archive_actor = pic.createActor<TestService>(TestIdlFactory, archives[i].canister_id);
+        archive_times.push( await archive_actor.last_modified() );
+      }
 
+      await passTime(10);
+      let can_last_updated = await can.last_modified();
+      await pic.upgradeCanister({ canisterId: canCanisterId, wasm: WASM_PATH });
+      let can_last_updated_after = await can.last_modified();
+      expect(Number(can_last_updated)).toBeLessThan(Number(can_last_updated_after));
+
+
+      let archive_times_new = [];
+      for (let i=0; i<archives.length; i++) {
+        let archive_actor = pic.createActor<TestService>(TestIdlFactory, archives[i].canister_id);
+        archive_times_new.push( await archive_actor.last_modified() );
+      }
+
+      for (let i=0; i<archives.length; i++) {
+        expect(Number(archive_times[i])).toBeLessThan(Number(archive_times_new[i]));
+      }
+
+    });
+
+    
 
 
     // it('icrc3_get_blocks request 1000 blocks', async () => {
