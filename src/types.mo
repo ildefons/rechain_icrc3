@@ -1,5 +1,4 @@
 
-//ILDE added
 import SW "mo:stable-write-only"; // ILDE: I have to add mops.toml
 
 module {
@@ -57,17 +56,7 @@ module {
       archiveControllers : [Principal];
       supportedBlocks : [BlockType];
     };
-//     {
-//     archiveControllers : ?[Principal];
-//     archiveCycles : Nat;
-//     archiveIndexType : IndexType;
-//     maxActiveRecords : Nat;
-//     maxArchivePages : Nat;
-//     maxRecordsInArchiveInstance : Nat;
-//     maxRecordsToArchive : Nat;
-//     settleToRecords : Nat;
-//     supportedBlocks : [{block_type : Text; url : Text}]
-//   }
+
 
     public type canister_settings = {
         controllers : ?[Principal];
