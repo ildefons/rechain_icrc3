@@ -425,33 +425,39 @@ describe('Delta', () => {
 
   });
 
-  // it('icrc3_get_blocks request 1000 blocks', async () => {
-  //   let rez = await can.icrc3_get_blocks([{
-  //       start: 0n,
-  //       length: 1000n
-  //   }]);
 
-  //   expect(rez.log_length).toBe(601n);
 
-  // });
+  it("Test memory leak after dispatching many actions", async () => {
+    for (let j = 0; j < 50; j++) {
 
-  // it('icrc3_get_blocks 3 requested ranged', async () => {
-  //   let rez = await can.icrc3_get_blocks([{
-  //       start: 0n,
-  //       length: 150n
-  //     }, {
-  //       start: 50n,
-  //       length: 300n
-  //     }, {
-  //       start: 550n,
-  //       length: 630n
-  //   }]);
+      let settings = await mgr.canister_status({ canister_id: canCanisterId });
+      expect(settings.memory_size).toBeLessThan(99439968n);
+      console.log(settings.memory_size);
+      let r = await can.dispatch(Array.from({ length: 1000 }, () => ({
+        ts: 12340n,
+        created_at_time: 1721045569580000n,
+        memo: [0, 1, 2, 3, 4],
+        caller: Principal.fromText("eqsml-lyaaa-aaaaq-aacdq-cai"),
+        fee: 1000n,
+        payload: {
+          swap: { amt: 123456n }
+        }
+      })));
+        
+      expect(toState(r[0]).Ok).toBe(""+(903+j*1000));
 
-  //   let jstr = JSON.stringify(toState(rez.archived_blocks));
+      await passTime(20);
+    };
 
-  //   expect(jstr).toBe('[{"args":[{"start":"0","length":"120"},{"start":"50","length":"70"}],"callback":["lqy7q-dh777-77777-aaaaq-cai","icrc3_get_blocks"]},{"args":[{"start":"120","length":"30"},{"start":"120","length":"120"}],"callback":["lz3um-vp777-77777-aaaba-cai","icrc3_get_blocks"]},{"args":[{"start":"240","length":"110"}],"callback":["l62sy-yx777-77777-aaabq-cai","icrc3_get_blocks"]},{"args":[{"start":"550","length":"21"}],"callback":["lm4fb-uh777-77777-aaacq-cai","icrc3_get_blocks"]}]')
+    let rez = await can.icrc3_get_blocks([{
+      start: 0n,
+      length: 30000n
+    }]);
 
-  // });
+    let srez = toState(rez);
+    expect(srez.archived_blocks.length).toBe(250);
+
+  }, 160000);
 
   async function passTime(n: number) {
     for (let i = 0; i < n; i++) {
