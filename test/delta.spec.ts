@@ -432,7 +432,6 @@ describe('Delta', () => {
 
       let settings = await mgr.canister_status({ canister_id: canCanisterId });
       expect(settings.memory_size).toBeLessThan(99439968n);
-      console.log(settings.memory_size);
       let r = await can.dispatch(Array.from({ length: 1000 }, () => ({
         ts: 12340n,
         created_at_time: 1721045569580000n,
