@@ -1,18 +1,11 @@
-import Map "mo:map/Map";
 import Principal "mo:base/Principal";
-import Array "mo:base/Array";
 import Blob "mo:base/Blob";
-import SWB "mo:swb/Stable";
-import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
-import Sha256 "mo:sha2/Sha256";
 import rechain  "../src/rechain";
-import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
-import RepIndy "mo:rep-indy-hash";
 import Timer "mo:base/Timer";
-import ExperimentalCycles "mo:base/ExperimentalCycles";
-import Iter "mo:base/Iter";
+import Vector "mo:vector";
+import Time "mo:base/Time";
 
 actor Self {
 
@@ -64,9 +57,9 @@ actor Self {
 
     };
 
-    func hashBlock(b: rechain.Value ): Blob {
-        Blob.fromArray(RepIndy.hash_val(b));
-    };
+    // func hashBlock(b: rechain.Value ): Blob {
+    //     Blob.fromArray(RepIndy.hash_val(b));
+    // };
 
     public query func icrc3_get_blocks(args: rechain.GetBlocksArgs): async rechain.GetBlocksResult {
         return chain.get_blocks(args);
@@ -85,20 +78,36 @@ actor Self {
         settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
         mem = chain_mem;
         encodeBlock = encodeBlock;
-        addPhash = func(a, phash) = #Blob("0" : Blob);
-        hashBlock = hashBlock;
+        //hashBlock = hashBlock;
         // reducers = [balances .reducer, dedup .reducer];//, balances .reducer];      //<-----REDO
         reducers = [];
     });
 
-
+    // Autoupgrade every time this canister is upgraded
+    ignore Timer.setTimer<system>(#seconds 1, func () : async () {
+        await chain.upgrade_archives();
+    });
+    
     public type DispatchResult = {#Ok: rechain.BlockId; #Err: ActionError };
 
-    private func testt<system>(x:Action): DispatchResult { chain.dispatch<system>(x) };
+    private func test<system>(x:Action): DispatchResult { chain.dispatch<system>(x) };
 
-    public shared(msg) func dispatch(actions: [Action]): async [DispatchResult] {
-            []        
+    public func dispatch(actions: [Action]): async [DispatchResult] {
+        let v = Vector.new<DispatchResult>();
+        for (a in actions.vals()) {
+            Vector.add(v, chain.dispatch<system>(a));
+        };
+        Vector.toArray(v);
     };
+
+    let canister_last_modified = Time.now();
+
+    public query func last_modified(): async Time.Time {
+        canister_last_modified;
+    };
+
+
+    
 
 
 

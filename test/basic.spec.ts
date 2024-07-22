@@ -23,7 +23,7 @@ export async function TestCan(pic:PocketIc, ledgerCanisterId:Principal) {
 };
 
 
-describe('Counter', () => {
+describe('Basic', () => {
     let pic: PocketIc;
     let can: Actor<TestService>;
     let canCanisterId: Principal;

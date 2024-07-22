@@ -162,7 +162,7 @@ function decodeBlock(my_blocks:GetTransactionsResult, block_pos:number ) {
           payload_from: my_payload_from});//: Uint8Array | number[];
 };
 
-describe("Rechain ICRC3 ledger tests", () => {
+describe("Ledger", () => {
   let pic: PocketIc;
   let can: Actor<TestService>;
   let canCanisterId: Principal;

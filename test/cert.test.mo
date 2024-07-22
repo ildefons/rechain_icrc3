@@ -365,16 +365,9 @@ actor Self {
                                                   settleToRecords = 30; 
                                                   maxRecordsInArchiveInstance = 120;};
         mem = chain_mem;
-        encodeBlock = encodeBlock;//func(b: T.Action) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
-                                                            // action.toGenericValue: I have to write it
-                                                            // it converts the action to generic value!!!
-                                                            // it converts to the action type to generic "value" type
-                                                            // "to_candid" is different implementation in different languages
-                                                            // instead  
-                                                            // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
-        addPhash = func(a, phash) = #Blob("0" : Blob); //{a with phash};            // !!!! RROR because I type is wrong above?
-        hashBlock = hashBlock;//func(b) = Sha256.fromBlob(#sha224, "0" : Blob);//b.1);   // NOT CORRECT: I should hash according to ICERC3 standard (copy/learn from ICDev)
-        reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];      //<-----REDO
+        encodeBlock = encodeBlock;
+        hashBlock = hashBlock;
+        reducers = [balances.reducer];//, dedup.reducer];
     });
     
 
@@ -518,17 +511,6 @@ actor Self {
 
         let ret = chain.dispatch<system>(action);
         return ret;
-        // switch (ret) {
-        //     case (#Ok(p)) {
-        //         Debug.print("Ok");
-        //         ret;
-        //     };
-        //     case (#Err(p)) {
-        //         //<---I MHERE WHY????  Reducer BalcerIlde is giving error
-        //         Debug.print("Error");
-        //         ret;
-        //     }
-        // }; 
     };
 
     public type DispatchResult = {#Ok : Nat;  #Err: T.ActionError };
