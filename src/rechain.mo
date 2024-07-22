@@ -158,7 +158,7 @@ module {
         };
 
         /// The IC actor used for updating archive controllers
-        private let ic : T.IC = actor "aaaaa-aa";
+        // private let ic : T.IC = actor "aaaaa-aa";
 
         private func updated_certification(cert: Blob, lastIndex: Nat) : Bool{
           CertTree.Ops(mem.cert_store).setCertifiedData();
@@ -190,7 +190,7 @@ module {
             ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
             // !!! ILDE:TBD
 
-            Debug.print("dispatch went through!");
+            //Debug.print("dispatch went through!");
 
             // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
             // 2) create new block according to steps 2-4 from ICDev ICRC3 implementation
@@ -229,7 +229,7 @@ module {
                 };
             };
 
-            Debug.print("before eturning successfully on rechain dispatch");
+            //Debug.print("before eturning successfully on rechain dispatch");
             // let fblock = addPhash(action, state.phash);
             // let encodedBlock = encodeBlock(fblock);
             // ignore history.add(encodedBlock);
@@ -267,13 +267,12 @@ module {
                 };
 
                 let ArchiveMgr = (system Archive.archive)(#new {
-                  settings = null
-                  // ?{
-                  //   controllers = ?Array.append([this_canister], state.constants.archiveProperties.archiveControllers);
-                  //   compute_allocation = null;
-                  //   memory_allocation = null;
-                  //   freezing_threshold = null;
-                  // }
+                  settings = ?{
+                    controllers = ?Array.append([this_canister], state.constants.archiveProperties.archiveControllers);
+                    compute_allocation = null;
+                    memory_allocation = null;
+                    freezing_threshold = null;
+                  }
                 });
 
                 try {
@@ -333,6 +332,7 @@ module {
                 //no archive exists - create a new canister
 
                 //commits state and creates archive
+                Debug.print("New archive " # debug_show(state.constants.archiveProperties));
 
                 let ?newArchive = await new_archive<system>({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
@@ -357,17 +357,11 @@ module {
                     case(null) {Debug.trap("mem.archives unreachable")}; //unreachable;
                     case(?val) val;
                 };
-                Debug.print("else");
+                //Debug.print("else");
                 if(lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance){ //ILDE: last archive is full, create a new archive
-                    Debug.print("Need a new canister");
-                    if(ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2){
-                        ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
-                    } else{
-                        //warning ledger will eventually overload
-                        state.bCleaning := false;
-                        return;
-                    };
-                    let newArchive = await new_archive({
+                  //  Debug.print("Need a new canister");
+              
+                    let ?newArchive = await new_archive({
                         maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
                         indexType = state.constants.archiveProperties.archiveIndexType;
                         maxPages = state.constants.archiveProperties.maxArchivePages;
@@ -537,7 +531,7 @@ module {
                     //icdev: Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))
                 };
 
-                Debug.print("getting local transactions" # debug_show(start,end)); 
+                //Debug.print("getting local transactions" # debug_show(start,end)); 
                 // icdev: buf.getOpt(1) // -> ?"b"
                 //some of the items are on this server
                 if(history.len() > 0 ){ // icdev Vec.size(state.ledger) > 0){
@@ -560,7 +554,7 @@ module {
       for(thisArgs in args.vals()){
         if(thisArgs.start < mem.firstIndex){
           
-          Debug.print("archive settings are " # debug_show(Iter.toArray(Map.entries(mem.archives))));
+          //Debug.print("archive settings are " # debug_show(Iter.toArray(Map.entries(mem.archives))));
           var seeking = thisArgs.start;
           label archive for(thisItem in Map.entries(mem.archives)){
             if (seeking > Nat.sub(thisItem.1.start + thisItem.1.length, 1) or thisArgs.start + thisArgs.length <= thisItem.1.start) {

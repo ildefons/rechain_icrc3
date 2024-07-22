@@ -6,8 +6,9 @@ import Nat64 "mo:base/Nat64";
 import Timer "mo:base/Timer";
 import Vector "mo:vector";
 import Time "mo:base/Time";
+import Mgr "./services/mgr";
 
-actor Self {
+actor class Delta({archive_controllers: [Principal]}) = this {
 
     public type Action = {
         ts: Nat64;
@@ -56,7 +57,7 @@ actor Self {
     };
 
     var chain = rechain.Chain<Action, ActionError>({
-        settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
+        settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120; archiveControllers = archive_controllers};
         mem = chain_mem;
         encodeBlock = encodeBlock;
         // reducers = [balances .reducer, dedup .reducer];//, balances .reducer];      //<-----REDO
@@ -64,6 +65,8 @@ actor Self {
     });
     
     // -----
+    
+
 
     public query func icrc3_get_blocks(args: rechain.GetBlocksArgs): async rechain.GetBlocksResult {
         return chain.get_blocks(args);
@@ -74,8 +77,9 @@ actor Self {
     };
 
     public func set_ledger_canister(): async () {
-        chain_mem.canister := ?Principal.fromActor(Self);
+        chain_mem.canister := ?Principal.fromActor(this);
     };
+
 
     // Autoupgrade every time this canister is upgraded
     ignore Timer.setTimer<system>(#seconds 1, func () : async () {
@@ -99,5 +103,8 @@ actor Self {
     public query func last_modified(): async Time.Time {
         canister_last_modified;
     };
+
+
+
 
 };
