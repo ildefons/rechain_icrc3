@@ -94,22 +94,22 @@ describe('Delta', () => {
     });
 
 
-    // it("dispatch 300 actions in 300 calls", async () => {
-    //   for (let i=0; i<300; i++) {
-    //     let r = await can.dispatch([{
-    //       ts:12340n,
-    //       created_at_time: 1721045569580000n,
-    //       memo: [0,1,2,3,4],
-    //       caller: Principal.fromText("eqsml-lyaaa-aaaaq-aacdq-cai"),
-    //       fee: 1000n,
-    //       payload: {
-    //         swap : {amt: 123456n}
-    //       }
-    //     }]);
-    //     expect(toState(r[0]).Ok).toBe((2 + i).toString());
-    //   }
-    //  await passTime(20);
-    // });
+    it("dispatch 300 actions in 300 calls", async () => {
+      for (let i=0; i<300; i++) {
+        let r = await can.dispatch([{
+          ts:12340n,
+          created_at_time: 1721045569580000n,
+          memo: [0,1,2,3,4],
+          caller: Principal.fromText("eqsml-lyaaa-aaaaq-aacdq-cai"),
+          fee: 1000n,
+          payload: {
+            swap : {amt: 123456n}
+          }
+        }]);
+        expect(toState(r[0]).Ok).toBe((2 + i).toString());
+      }
+     await passTime(20);
+    });
 
 
     it('icrc3_get_blocks 100', async () => {
@@ -119,9 +119,9 @@ describe('Delta', () => {
       }]);
       let archive_rez = await getArchived(rez.archived_blocks[0]);
       
-    //   expect(archive_rez.blocks[5].id).toBe(5n);
+      expect(archive_rez.blocks[5].id).toBe(5n);
       
-    // });
+    });
 
 
       it('icrc3_get_blocks first 301', async () => {
@@ -131,35 +131,35 @@ describe('Delta', () => {
       }]);
 
       
-    //   expect(rez.blocks[0].id).toBe(240n);
-    //   expect(rez.blocks[ rez.blocks.length - 1].id).toBe(300n);
+      expect(rez.blocks[0].id).toBe(240n);
+      expect(rez.blocks[ rez.blocks.length - 1].id).toBe(300n);
 
-    //   let archive_rez_0 = await getArchived(rez.archived_blocks[0]);
-    //   expect(archive_rez_0.blocks[0].id).toBe(0n);
-    //   expect(archive_rez_0.blocks[ archive_rez_0.blocks.length - 1].id).toBe(119n);
+      let archive_rez_0 = await getArchived(rez.archived_blocks[0]);
+      expect(archive_rez_0.blocks[0].id).toBe(0n);
+      expect(archive_rez_0.blocks[ archive_rez_0.blocks.length - 1].id).toBe(119n);
 
-    //   let archive_rez_1 = await getArchived(rez.archived_blocks[1]);
-    //   expect(archive_rez_1.blocks[0].id).toBe(120n);
-    //   expect(archive_rez_1.blocks[ archive_rez_1.blocks.length - 1].id).toBe(239n);
+      let archive_rez_1 = await getArchived(rez.archived_blocks[1]);
+      expect(archive_rez_1.blocks[0].id).toBe(120n);
+      expect(archive_rez_1.blocks[ archive_rez_1.blocks.length - 1].id).toBe(239n);
 
-    // });
+    });
 
 
 
-    // it("dispatch 300 actions in 1 call", async () => {
-    //     let r = await can.dispatch(Array.from({ length: 300 }, () => ({
-    //       ts:12340n,
-    //       created_at_time: 1721045569580000n,
-    //       memo: [0,1,2,3,4],
-    //       caller: Principal.fromText("eqsml-lyaaa-aaaaq-aacdq-cai"),
-    //       fee: 1000n,
-    //       payload: {
-    //         swap : {amt: 123456n}
-    //       }
-    //     })));
-    //     expect(toState(r[0]).Ok).toBe("302");
-    //     await passTime(20);
-    // });
+    it("dispatch 300 actions in 1 call", async () => {
+        let r = await can.dispatch(Array.from({ length: 300 }, () => ({
+          ts:12340n,
+          created_at_time: 1721045569580000n,
+          memo: [0,1,2,3,4],
+          caller: Principal.fromText("eqsml-lyaaa-aaaaq-aacdq-cai"),
+          fee: 1000n,
+          payload: {
+            swap : {amt: 123456n}
+          }
+        })));
+        expect(toState(r[0]).Ok).toBe("302");
+        await passTime(20);
+    });
 
     let data_before_upgrade : GetBlocksResult;
     let data_before_upgrade_archive_0 : GetBlocksResult;
@@ -168,34 +168,34 @@ describe('Delta', () => {
     let data_before_upgrade_archive_3 : GetBlocksResult;
     let data_before_upgrade_archive_4 : GetBlocksResult;
 
-    // it('icrc3_get_blocks 601', async () => {
-    //   let rez = await can.icrc3_get_blocks([{
-    //       start: 0n,
-    //       length: 800n
-    //   }]);
+    it('icrc3_get_blocks 601', async () => {
+      let rez = await can.icrc3_get_blocks([{
+          start: 0n,
+          length: 800n
+      }]);
 
-    //   expect(rez.blocks[0].id).toBe(571n);
-    //   expect(rez.blocks[ rez.blocks.length - 1].id).toBe(600n);
+      expect(rez.blocks[0].id).toBe(571n);
+      expect(rez.blocks[ rez.blocks.length - 1].id).toBe(600n);
 
-    //   let archive_rez_0 = await getArchived(rez.archived_blocks[0]);
-    //   expect(archive_rez_0.blocks[0].id).toBe(0n);
-    //   expect(archive_rez_0.blocks[ archive_rez_0.blocks.length - 1].id).toBe(119n);
+      let archive_rez_0 = await getArchived(rez.archived_blocks[0]);
+      expect(archive_rez_0.blocks[0].id).toBe(0n);
+      expect(archive_rez_0.blocks[ archive_rez_0.blocks.length - 1].id).toBe(119n);
 
-    //   let archive_rez_1 = await getArchived(rez.archived_blocks[1]);
-    //   expect(archive_rez_1.blocks[0].id).toBe(120n);
-    //   expect(archive_rez_1.blocks[ archive_rez_1.blocks.length - 1].id).toBe(239n);
+      let archive_rez_1 = await getArchived(rez.archived_blocks[1]);
+      expect(archive_rez_1.blocks[0].id).toBe(120n);
+      expect(archive_rez_1.blocks[ archive_rez_1.blocks.length - 1].id).toBe(239n);
 
-    //   let archive_rez_2 = await getArchived(rez.archived_blocks[2]);
-    //   expect(archive_rez_2.blocks[0].id).toBe(240n);
-    //   expect(archive_rez_2.blocks[ archive_rez_2.blocks.length - 1].id).toBe(359n);
+      let archive_rez_2 = await getArchived(rez.archived_blocks[2]);
+      expect(archive_rez_2.blocks[0].id).toBe(240n);
+      expect(archive_rez_2.blocks[ archive_rez_2.blocks.length - 1].id).toBe(359n);
 
-    //   let archive_rez_3 = await getArchived(rez.archived_blocks[3]);
-    //   expect(archive_rez_3.blocks[0].id).toBe(360n);
-    //   expect(archive_rez_3.blocks[ archive_rez_3.blocks.length - 1].id).toBe(479n);
+      let archive_rez_3 = await getArchived(rez.archived_blocks[3]);
+      expect(archive_rez_3.blocks[0].id).toBe(360n);
+      expect(archive_rez_3.blocks[ archive_rez_3.blocks.length - 1].id).toBe(479n);
 
-    //   let archive_rez_4 = await getArchived(rez.archived_blocks[4]);
-    //   expect(archive_rez_4.blocks[0].id).toBe(480n);
-    //   expect(archive_rez_4.blocks[ archive_rez_4.blocks.length - 1].id).toBe(570n);
+      let archive_rez_4 = await getArchived(rez.archived_blocks[4]);
+      expect(archive_rez_4.blocks[0].id).toBe(480n);
+      expect(archive_rez_4.blocks[ archive_rez_4.blocks.length - 1].id).toBe(570n);
 
       data_before_upgrade = rez;
       data_before_upgrade_archive_0 = archive_rez_0;

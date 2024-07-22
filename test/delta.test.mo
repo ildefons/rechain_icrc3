@@ -88,7 +88,7 @@ actor class Delta({archive_controllers: [Principal]}) = this {
     
     public type DispatchResult = {#Ok: rechain.BlockId; #Err: ActionError };
 
-    private func test<system>(x:Action): DispatchResult { chain.dispatch<system>(x) };
+    private func testt<system>(x:Action): DispatchResult { chain.dispatch<system>(x) };
 
     public func dispatch(actions: [Action]): async [DispatchResult] {
         let v = Vector.new<DispatchResult>();
@@ -103,15 +103,6 @@ actor class Delta({archive_controllers: [Principal]}) = this {
     public query func last_modified(): async Time.Time {
         canister_last_modified;
     };
-
-    let canister_last_modified = Time.now();
-
-    public query func last_modified(): async Time.Time {
-        canister_last_modified;
-    };
-
-
-    
 
 
 
