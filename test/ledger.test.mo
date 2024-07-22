@@ -379,7 +379,7 @@ actor Self {
         let ret = chain.dispatch<system>(x);  //handle error
         //add block to ledger
 
-        Debug.print(debug_show(ret));
+        //Debug.print(debug_show(ret));
 
         return ret;
 
