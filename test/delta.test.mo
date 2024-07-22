@@ -6,8 +6,9 @@ import Nat64 "mo:base/Nat64";
 import Timer "mo:base/Timer";
 import Vector "mo:vector";
 import Time "mo:base/Time";
+import Mgr "./services/mgr";
 
-actor Self {
+actor class Delta({archive_controllers: [Principal]}) = this {
 
     public type Action = {
         ts: Nat64;
@@ -30,7 +31,6 @@ actor Self {
     stable let chain_mem  = rechain.Mem();
 
     func encodeBlock(b: Action): rechain.Value {
-
         let trx: rechain.Value  = #Map([
             ("ts", #Nat(Nat64.toNat(b.ts))),
             ("created_at_time", #Nat(Nat64.toNat(b.created_at_time))),
@@ -54,12 +54,19 @@ actor Self {
                 };
             }))
         ]);
-
     };
 
-    // func hashBlock(b: rechain.Value ): Blob {
-    //     Blob.fromArray(RepIndy.hash_val(b));
-    // };
+    var chain = rechain.Chain<Action, ActionError>({
+        settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120; archiveControllers = archive_controllers};
+        mem = chain_mem;
+        encodeBlock = encodeBlock;
+        // reducers = [balances .reducer, dedup .reducer];//, balances .reducer];      //<-----REDO
+        reducers = [];
+    });
+    
+    // -----
+    
+
 
     public query func icrc3_get_blocks(args: rechain.GetBlocksArgs): async rechain.GetBlocksResult {
         return chain.get_blocks(args);
@@ -69,19 +76,10 @@ actor Self {
         return chain.get_archives(args);
     };
 
-    public shared(msg) func set_ledger_canister(): async () {
-        chain_mem.canister := ?Principal.fromActor(Self);
-        //chain.set_ledger_canister(Principal.fromActor(Self));
+    public func set_ledger_canister(): async () {
+        chain_mem.canister := ?Principal.fromActor(this);
     };
 
-    var chain = rechain.Chain<Action, ActionError>({
-        settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
-        mem = chain_mem;
-        encodeBlock = encodeBlock;
-        //hashBlock = hashBlock;
-        // reducers = [balances .reducer, dedup .reducer];//, balances .reducer];      //<-----REDO
-        reducers = [];
-    });
 
     // Autoupgrade every time this canister is upgraded
     ignore Timer.setTimer<system>(#seconds 1, func () : async () {
@@ -106,8 +104,15 @@ actor Self {
         canister_last_modified;
     };
 
+    let canister_last_modified = Time.now();
+
+    public query func last_modified(): async Time.Time {
+        canister_last_modified;
+    };
+
 
     
+
 
 
 
