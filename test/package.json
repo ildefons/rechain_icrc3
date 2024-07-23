@@ -15,9 +15,9 @@
   "dependencies": {
     "@dfinity/agent": "^1.0.0",
     "@dfinity/candid": "^1.0.0",
+    "@dfinity/certificate-verification": "^2.4.0",
     "@dfinity/identity": "^1.0.0",
     "@dfinity/principal": "^1.0.0",
-    "@dfinity/certificate-verification": "^1.0.0",
     "@infu/icblast": "^2.0.46",
     "@types/node": "^20.11.19",
     "get-random-values": "^3.0.0",

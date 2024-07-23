@@ -8,9 +8,7 @@ import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import CertifiedData "mo:base/CertifiedData";
 import Error "mo:base/Error";
-
 import T "./types";
-
 import Vec "mo:vector";
 import RepIndy "mo:rep-indy-hash";
 import Text "mo:base/Text";
@@ -19,7 +17,6 @@ import Archive "./archive";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Iter "mo:base/Iter";
 import Bool "mo:base/Bool";
-
 import CertTree "mo:cert/CertTree";
 import MTree "mo:cert/MerkleTree";
 import Option "mo:base/Option";
@@ -79,7 +76,7 @@ module {
 
   public let DEFAULT_SETTINGS = {
     archiveActive = true;
-    maxActiveRecords = 2000; // max size of ledger before archiving (state.history)
+    maxActiveRecords = 2000; // max size of ledger before archiving 
     settleToRecords = 1000; //It makes sure to leave 1000 records in the ledger after archiving
     maxRecordsInArchiveInstance = 10_000_000; //if archive full, we create a new one
     maxArchivePages = 62500; //Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
@@ -99,12 +96,11 @@ module {
 
     let history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
 
-    let state = {
+    let archiveState = {
       var bCleaning = false; //It indicates whether a archival process is on or not (only 1 possible at a time)
       var cleaningTimer : ?Nat = null; //This timer will be set once we reach a ledger size > maxActiveRecords (see mothod below)
-      constants = {
-        archiveProperties = Option.get(settings, DEFAULT_SETTINGS);
-      };
+      settings = Option.get(settings, DEFAULT_SETTINGS);
+   
     };
 
 
@@ -116,11 +112,11 @@ module {
       let hasError = Array.find<ReducerResponse<E>>(reducerResponse, func(resp) = switch (resp) { case (#Err(_)) true; case (_) false });
 
       switch (hasError) { case (? #Err(e)) { return #Err(e) }; case (_) () };
-      let blockId = mem.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger
+      let blockId = mem.lastIndex + 1; //archiveState.history.end() + 1; // ILDE: now archiveState.lastIndex is the id of last block in the ledger
       // Execute state changes if no errors
       ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func(resp) { let #Ok(f) = resp else return (); f(blockId) });
 
-      if (state.constants.archiveProperties.archiveActive) {
+      if (archiveState.settings.archiveActive) {
         let encodedBlock : T.Value = encodeBlock(action);
         // create new empty block entry
         let trx = Vec.new<(Text, T.Value)>();
@@ -140,11 +136,11 @@ module {
         //One we add the block, we need to increase the lastIndex
         mem.lastIndex := mem.lastIndex + 1;
 
-        if (history.len() > state.constants.archiveProperties.maxActiveRecords) {
-          switch (state.cleaningTimer) {
+        if (history.len() > archiveState.settings.maxActiveRecords) {
+          switch (archiveState.cleaningTimer) {
             case (null) {
               //only need one active timer
-              state.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
+              archiveState.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
             };
             case (_) {};
           };
@@ -168,19 +164,19 @@ module {
     private func new_archive<system>(initArg : T.ArchiveInitArgs) : async ?(actor {}) {
       let ?this_canister = mem.canister else Debug.trap("No canister set");
 
-      if (ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2) {
-        ExperimentalCycles.add<system>(state.constants.archiveProperties.archiveCycles);
+      if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) {
+        ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
       } else {
         //warning ledger will eventually overload
         Debug.print("Not enough cycles" # debug_show (ExperimentalCycles.balance()));
-        state.bCleaning := false;
+        archiveState.bCleaning := false;
         return null;
       };
 
       let ArchiveMgr = (system Archive.archive)(
         #new {
           settings = ?{
-            controllers = ?Array.append([this_canister], state.constants.archiveProperties.archiveControllers);
+            controllers = ?Array.append([this_canister], archiveState.settings.archiveControllers);
             compute_allocation = null;
             memory_allocation = null;
             freezing_threshold = null;
@@ -191,7 +187,7 @@ module {
       try {
         return ?(await ArchiveMgr(?initArg));
       } catch (err) {
-        state.bCleaning := false;
+        archiveState.bCleaning := false;
         Debug.print("Error creating archive canister " # Error.message(err));
         return null;
       };
@@ -211,19 +207,19 @@ module {
     public func check_clean_up<system>() : async () {
 
       //clear the timer
-      state.cleaningTimer := null;
+      archiveState.cleaningTimer := null;
 
       //ensure only one cleaning job is running
 
-      if (state.bCleaning) {
+      if (archiveState.bCleaning) {
         return; //only one cleaning at a time;
       };
 
-      if (history.len() < state.constants.archiveProperties.maxActiveRecords) return;
+      if (history.len() < archiveState.settings.maxActiveRecords) return;
 
       // let know that we are creating an archive canister so noone else try at the same time
 
-      state.bCleaning := true;
+      archiveState.bCleaning := true;
 
       //cleaning
 
@@ -231,9 +227,9 @@ module {
         //no archive exists - create a new canister
 
         let ?newArchive = await new_archive<system>({
-          maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-          indexType = state.constants.archiveProperties.archiveIndexType;
-          maxPages = state.constants.archiveProperties.maxArchivePages;
+          maxRecords = archiveState.settings.maxRecordsInArchiveInstance;
+          indexType = archiveState.settings.archiveIndexType;
+          maxPages = archiveState.settings.maxArchivePages;
           firstIndex = 0;
         }) else return;
 
@@ -245,7 +241,7 @@ module {
         };
 
         ignore Map.put<Principal, T.TransactionRange>(mem.archives, Map.phash, Principal.fromActor(newArchive), newItem);
-        ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
+        ((Principal.fromActor(newArchive), newItem), archiveState.settings.maxRecordsInArchiveInstance);
       } else {
         // check that the last one isn't full;
         let lastArchive = switch (Map.peek(mem.archives)) {
@@ -253,13 +249,13 @@ module {
           case (null) { Debug.trap("mem.archives unreachable") }; //unreachable;
           case (?val) val;
         };
-        if (lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance) {
+        if (lastArchive.1.length >= archiveState.settings.maxRecordsInArchiveInstance) {
           // last archive is full, create a new archive
 
           let ?newArchive = await new_archive({
-            maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
-            indexType = state.constants.archiveProperties.archiveIndexType;
-            maxPages = state.constants.archiveProperties.maxArchivePages;
+            maxRecords = archiveState.settings.maxRecordsInArchiveInstance;
+            indexType = archiveState.settings.archiveIndexType;
+            maxPages = archiveState.settings.maxArchivePages;
             firstIndex = lastArchive.1.start + lastArchive.1.length;
           }) else return;
 
@@ -268,11 +264,11 @@ module {
             length = 0;
           };
           ignore Map.put(mem.archives, Map.phash, Principal.fromActor(newArchive), newItem);
-          ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
+          ((Principal.fromActor(newArchive), newItem), archiveState.settings.maxRecordsInArchiveInstance);
         } else {
           //this is the case we reuse a previously/last create archive because there is free space
-          let capacity = if (state.constants.archiveProperties.maxRecordsInArchiveInstance >= lastArchive.1.length) {
-            Nat.sub(state.constants.archiveProperties.maxRecordsInArchiveInstance, lastArchive.1.length);
+          let capacity = if (archiveState.settings.maxRecordsInArchiveInstance >= lastArchive.1.length) {
+            Nat.sub(archiveState.settings.maxRecordsInArchiveInstance, lastArchive.1.length);
           } else {
             Debug.trap("max archive lenghth must be larger than the last archive length");
           };
@@ -283,8 +279,8 @@ module {
 
       let archive = actor (Principal.toText(archive_detail.0)) : T.ArchiveInterface;
 
-      var archive_amount = if (history.len() > state.constants.archiveProperties.settleToRecords) {
-        Nat.sub(history.len(), state.constants.archiveProperties.settleToRecords);
+      var archive_amount = if (history.len() > archiveState.settings.settleToRecords) {
+        Nat.sub(history.len(), archiveState.settings.settleToRecords);
       } else {
         Debug.trap("Settle to records must be equal or smaller than the size of the ledger upon clanup");
 
@@ -300,9 +296,9 @@ module {
         archive_amount := available_capacity;
       };
 
-      if (archive_amount > state.constants.archiveProperties.maxRecordsToArchive) {
+      if (archive_amount > archiveState.settings.maxRecordsToArchive) {
         bRecallAtEnd := true;
-        archive_amount := state.constants.archiveProperties.maxRecordsToArchive;
+        archive_amount := archiveState.settings.maxRecordsToArchive;
       };
 
       let length = Nat.min(history.len(), 1000);
@@ -331,7 +327,7 @@ module {
           case (#Full(stats)) stats;
           case (#err(_)) {
             //do nothing...it failed;
-            state.bCleaning := false; //if error, we can desactivate bCleaning (set to True in the begining) and return (WHY!!!???)
+            archiveState.bCleaning := false; //if error, we can desactivate bCleaning (set to True in the begining) and return (WHY!!!???)
             return;
           };
         };
@@ -353,17 +349,17 @@ module {
         );
       } catch (_) {
         //what do we do when it fails?  keep them in memory?
-        state.bCleaning := false;
+        archiveState.bCleaning := false;
         return;
       };
 
       // bCleaning :=false; to allow other timers to act
       // check bRecallAtEnd=True to make it possible to finish non archived transactions with a new timer
 
-      state.bCleaning := false;
+      archiveState.bCleaning := false;
 
       if (bRecallAtEnd) {
-        state.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
+        archiveState.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
       };
 
       return;
@@ -377,8 +373,8 @@ module {
         firstIndex = mem.firstIndex;
         archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
         ledgerCanister = mem.canister;
-        bCleaning = state.bCleaning;
-        archiveProperties = state.constants.archiveProperties;
+        bCleaning = archiveState.bCleaning;
+        archiveProperties = archiveState.settings;
       };
     };
 
@@ -399,39 +395,39 @@ module {
         let start = if (thisArg.start + thisArg.length > mem.firstIndex) {
 
           let start = if (thisArg.start <= mem.firstIndex) {
-            mem.firstIndex; //"our sliding window first valid element is state.firstIndex not 0" 0;
+            mem.firstIndex; //"our sliding window first valid element is archiveState.firstIndex not 0" 0;
           } else {
             if (thisArg.start >= (mem.firstIndex)) {
-              thisArg.start; //"thisArg.start is already the index in our sliding window" Nat.sub(thisArg.start, (state.firstIndex));
+              thisArg.start; //"thisArg.start is already the index in our sliding window" Nat.sub(thisArg.start, (archiveState.firstIndex));
             } else {
               Debug.trap("last index must be larger than requested start plus one");
             };
           };
 
           let end = if (history.len() == 0) {
-            // icdev: Vec.size(state.ledger)==0){
+            // icdev: Vec.size(archiveState.ledger)==0){
             mem.lastIndex; //icdev: 0;
           } else if (thisArg.start + thisArg.length >= mem.lastIndex) {
-            mem.lastIndex - 1 : Nat; //"lastIndex - 1 is sufficient to point the last available position in the sliding window) Nat.sub(state.history.len(),1); // ILDE Vec.size(state.ledger), 1);
+            mem.lastIndex - 1 : Nat; //"lastIndex - 1 is sufficient to point the last available position in the sliding window) Nat.sub(archiveState.history.len(),1); // ILDE Vec.size(archiveState.ledger), 1);
           } else {
             thisArg.start + thisArg.length - 1 : Nat;
-            //icdev: Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))
+            //icdev: Nat.sub((Nat.sub(archiveState.lastIndex,archiveState.firstIndex)), (Nat.sub(archiveState.lastIndex, (thisArg.start + thisArg.length))))
           };
 
           // icdev: buf.getOpt(1) // -> ?"b"
           //some of the items are on this server
           if (history.len() > 0) {
-            // icdev Vec.size(state.ledger) > 0){
+            // icdev Vec.size(archiveState.ledger) > 0){
             label search for (thisItem in Iter.range(start, end)) {
               if (thisItem >= mem.lastIndex) {
-                //icdev state.history.len()){ //ILDE Vec.size(state.ledger)){
+                //icdev archiveState.history.len()){ //ILDE Vec.size(archiveState.ledger)){
                 break search;
               };
               Vec.add(
                 transactions,
                 {
-                  id = thisItem; //icdev: state.firstIndex + thisItem;
-                  block = history.getOpt(thisItem); //icdev: Vec.get(state.ledger, thisItem)
+                  id = thisItem; //icdev: archiveState.firstIndex + thisItem;
+                  block = history.getOpt(thisItem); //icdev: Vec.get(archiveState.ledger, thisItem)
                 },
               );
             };
