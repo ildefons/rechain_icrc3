@@ -5,7 +5,6 @@ import Blob "mo:base/Blob";
 import SWB "mo:swb/Stable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
-import Nat8 "mo:base/Nat8";
 import CertifiedData "mo:base/CertifiedData";
 import Error "mo:base/Error";
 import T "./types";
@@ -16,7 +15,6 @@ import Timer "mo:base/Timer";
 import Archive "./archive";
 import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Iter "mo:base/Iter";
-import Bool "mo:base/Bool";
 import CertTree "mo:cert/CertTree";
 import MTree "mo:cert/MerkleTree";
 import Option "mo:base/Option";
@@ -45,30 +43,18 @@ module {
       cert_store = CertTree.newStore(); //Certificate tree storage
     };
   };
+
   public type Value = T.Value;
   public type GetBlocksArgs = T.GetBlocksArgs;
   public type GetBlocksResult = T.GetBlocksResult;
   public type GetArchivesArgs = T.GetArchivesArgs;
   public type GetArchivesResult = T.GetArchivesResult;
-
   public type ActionReducer<A, B> = (A) -> ReducerResponse<B>;
   public type BlockId = Nat;
   public type ReducerResponse<E> = {
     #Ok : (BlockId) -> ();
     #Pass;
     #Err : E;
-  };
-  public type GetBlocksRequest = { start : Nat; length : Nat };
-  public type GetTransactionsResponse = {
-    first_index : Nat;
-    log_length : Nat;
-    transactions : [T.Value];
-    archived_transactions : [ArchivedRange];
-  };
-  public type ArchivedRange = {
-    callback : shared query GetBlocksRequest -> async T.TransactionRange;
-    start : Nat;
-    length : Nat;
   };
 
   public type Transaction = T.Value;

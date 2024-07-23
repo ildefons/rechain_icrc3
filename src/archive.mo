@@ -10,8 +10,6 @@ import Nat64 "mo:base/Nat64";
 
 shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.ArchiveInitArgs) = this {
 
-
-
   let canister_last_modified = Time.now();
 
   Debug.print("new archive created with the following args" # debug_show(_args));
