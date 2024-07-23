@@ -308,16 +308,9 @@ actor Self {
         
         let a = add_record(mymint);
 
-        // let aa: Nat = switch(a) {
-        //     case (#Ok(pp)) pp;
-        //     case (_) 0;
-        // };
-
         let c = add_record(mymint);
-        //Debug.print("History size before:"#Nat.toText(a));
         let b = add_record(myin);
-        //Debug.print("History size before:"#Nat.toText(b));
-        //var aux = Timer.setTimer(#seconds(5), check_clean_up); 
+
         return 0;
                 
     };
@@ -335,17 +328,12 @@ actor Self {
                 });
         };
         let numTx:Nat = 60;
-        
-        Debug.print("Balance before:" # debug_show(ExperimentalCycles.balance() ));
-        Debug.print("Cycles before:" # debug_show(ExperimentalCycles.available() ));
+
         for (i in Iter.range(0,  numTx- 1)) {
             let c = add_record(mymint);
-            //Debug.print(Nat.toText(i));
+         
         };
-        Debug.print("Balance after:" # debug_show(ExperimentalCycles.balance() ));
-        Debug.print("cycles:" # debug_show(ExperimentalCycles.available() ));
         
-        chain.print_archives();
 
         0;
     };
@@ -382,21 +370,8 @@ actor Self {
         let ret = chain.dispatch<system>(x);  //handle error
         //add block to ledger
 
-        Debug.print(debug_show(ret));
-
         return ret;
 
-        // switch (ret) {
-        //     case (#Ok(p)) {
-        //         Debug.print("Ok");
-        //         return 0;
-        //     };
-        //     case (#Err(p)) {
-        //         //<---I MHERE WHY????  Reducer BalcerIlde is giving error
-        //         Debug.print("Error");
-        //         return 1;
-        //     }
-        // }; 
     };
 
     // ICRC-1
