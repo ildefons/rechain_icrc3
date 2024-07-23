@@ -17,6 +17,9 @@ const config: Config = {
   globalSetup: '<rootDir>/global-setup.ts',
   globalTeardown: '<rootDir>/global-teardown.ts',
   testTimeout: 30_000,
+  transformIgnorePatterns: [
+    '/node_modules/(?!@dfinity/agent|@dfinity/certificate-verification)' // Add other modules as necessary
+  ]
 };
 
 export default config;
