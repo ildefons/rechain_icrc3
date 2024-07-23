@@ -20,7 +20,7 @@ import {
 } from "./build/cert.idl.js";
 import { HttpAgent, compare, lookup_path } from '@dfinity/agent';
 import { verifyCertification } from '@dfinity/certificate-verification';
-import { backend, canisterId } from '../../declarations/backend';
+//import { backend, canisterId } from './build';
 
 // ILDE import {ICRCLedgerService, ICRCLedger} from "./icrc_ledger/ledgerCanister";
 //@ts-ignore
@@ -82,11 +82,12 @@ describe("Cert", () => {
     if (data_cert != null) {
       let ddddd: undefined|DataCertificate = data_cert[0];
       if (typeof ddddd != "undefined") {
-
+        const certificate = ddddd.certificate;
+        const witness = ddddd.hash_tree;
         const agent = new HttpAgent();
         await agent.fetchRootKey();
         const tree = await verifyCertification({
-          canisterId: Principal.fromText(canisterId),
+          canisterId: Principal.fromText(canCanisterId.toString()),
           encodedCertificate: new Uint8Array(certificate).buffer,
           encodedTree: new Uint8Array(witness).buffer,
           rootKey: agent.rootKey,
