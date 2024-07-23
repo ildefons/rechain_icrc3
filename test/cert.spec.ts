@@ -11,13 +11,15 @@ import {
 
 import {
   Action,
+  DataCertificate,
   Account,
   GetBlocksArgs,
   TransactionRange,
   GetTransactionsResult,
   Value__1,
 } from "./build/cert.idl.js";
-
+import { HttpAgent, compare, lookup_path } from '@dfinity/agent';
+import { verifyCertification } from '@dfinity/certificate-verification';
 
 // ILDE import {ICRCLedgerService, ICRCLedger} from "./icrc_ledger/ledgerCanister";
 //@ts-ignore
@@ -58,7 +60,7 @@ describe("Cert", () => {
     await pic.tearDown(); //ILDE: this means "it removes the replica"
   });
 
-  it("test1check_burnblock_to", async () => {
+  it("test_mintblock_cert1", async () => {
     let my_mint_action: Action = {
       ts : 0n,
       created_at_time : [0n], //?Nat64
@@ -74,6 +76,39 @@ describe("Cert", () => {
     };
     let r_mint = await can.add_record(my_mint_action);
     expect(true).toBe('Ok' in r_mint);
+
+    let data_cert: []|[DataCertificate] = await can.icrc3_get_tip_certificate();// : async ?Trechain.DataCertificate 
+    if (data_cert != null) {
+      let ddddd: undefined|DataCertificate = data_cert[0];
+      if (typeof ddddd != "undefined") {
+
+        const agent = new HttpAgent();
+        await agent.fetchRootKey();
+        // const tree = await verifyCertification({
+        //   canisterId: Principal.fromText(canisterId),
+        //   encodedCertificate: new Uint8Array(certificate).buffer,
+        //   encodedTree: new Uint8Array(witness).buffer,
+        //   rootKey: agent.rootKey,
+        //   maxCertificateTimeOffsetMs: 50000,
+        // });
+
+        // const treeHash = lookup_path(['count'], tree);
+        // if (!treeHash) {
+        //   throw new Error('Count not found in tree');
+        // }
+
+        // const responseHash = await hashUInt32(count);
+        // if (!(treeHash instanceof ArrayBuffer) || !equal(responseHash, treeHash)) {
+        //   throw new Error('Count hash does not match');
+        // }
+
+        // countElement.innerText = String(count);
+
+
+
+        console.log("cert: ", ddddd.certificate);
+      };
+    };
   });
 
   
