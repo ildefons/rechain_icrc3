@@ -44,6 +44,7 @@ import Bool "mo:base/Bool";
 import CertTree "mo:cert/CertTree";
 import MTree "mo:cert/MerkleTree";
 import Option "mo:base/Option";
+import Utils "./utils";
 
 module {
     /// Represents the environment object passed to the ICRC3 class (cp from ICDev code)
@@ -101,7 +102,8 @@ module {
     public type Transaction = T.Value;
     public type AddTransactionsResponse = T.AddTransactionsResponse;
 
-    public let DEFAULT_SETTINGS =  {
+    public let DEFAULT_SETTINGS = {
+          archiveActive = true;
           maxActiveRecords = 2000;    // max size of ledger before archiving (state.history)
           settleToRecords = 1000;        //It makes sure to leave 1000 records in the ledger after archiving
           maxRecordsInArchiveInstance = 10_000_000; //if archive full, we create a new one
@@ -120,32 +122,7 @@ module {
         settings: ?T.InitArgs;
         }) {
 
-        // This function is from ICDev
-        /// Encodes a number as big-endian bytes
-        ///
-        /// Arguments:
-        /// - `nat`: The number to encode
-        ///
-        /// Returns:
-        /// - The encoded bytes
-        func encodeBigEndian(nat: Nat): Blob {
-          var tempNat = nat;
-          var bitCount = 0;
-          while (tempNat > 0) {
-            bitCount += 1;
-            tempNat /= 2;
-          };
-          let byteCount = (bitCount + 7) / 8;
-
-          var buffer = Vec.init<Nat8>(byteCount, 0);
-          for (i in Iter.range(0, byteCount-1)) {
-            let byteValue = Nat.div(nat, Nat.pow(256, i)) % 256;
-            Vec.put(buffer, i, Nat8.fromNat(byteValue));
-          };
-
-          Vec.reverse<Nat8>(buffer);
-          return Blob.fromArray(Vec.toArray<Nat8>(buffer));
-        };
+  
 
         let history = SWB.SlidingWindowBuffer<T.Value>(mem.history);
 
@@ -157,8 +134,6 @@ module {
             };
         };
 
-        /// The IC actor used for updating archive controllers
-        // private let ic : T.IC = actor "aaaaa-aa";
 
         private func updated_certification(cert: Blob, lastIndex: Nat) : Bool{
           CertTree.Ops(mem.cert_store).setCertifiedData();
@@ -167,6 +142,7 @@ module {
         private func get_certificate_store() : CertTree.Store {
           return mem.cert_store;
         };
+        
         private func get_environment() : Environment{
           {
             updated_certification = ?updated_certification;
@@ -183,63 +159,45 @@ module {
             let reducerResponse = Array.map<ActionReducer<A,E>, ReducerResponse<E>>(reducers, func (fn) = fn(action));
             // Check if any reducer returned an error and terminate if so
             let hasError = Array.find<ReducerResponse<E>>(reducerResponse, func (resp) = switch(resp) { case(#Err(_)) true; case(_) false; });
-            //Debug.print("before checking for errors");
+
             switch(hasError) { case (?#Err(e)) { return #Err(e)};  case (_) (); };
             let blockId = mem.lastIndex + 1; //state.history.end() + 1; // ILDE: now state.lastIndex is the id of last block in the ledger 
             // Execute state changes if no errors
             ignore Array.map<ReducerResponse<E>, ()>(reducerResponse, func (resp) {let #Ok(f) = resp else return (); f(blockId);});
-            // !!! ILDE:TBD
 
-            //Debug.print("dispatch went through!");
+         
+            if (state.constants.archiveProperties.archiveActive) {
+              let encodedBlock: T.Value = encodeBlock(action);
+              // create new empty block entry
+              let trx = Vec.new<(Text, T.Value)>();
+              // Add phash to empty block (null if not the first block)
+              switch(mem.phash){
+                  case(null) {};
+                  case(?val){
+                  Vec.add(trx, ("phash", #Blob(val)));
+                  };
+              };
+              // add encoded blockIlde to new block with phash
+              Vec.add(trx,("tx", encodedBlock));
+              // covert vector to map to make it consistent with Value type
+              let thisTrx = #Map(Vec.toArray(trx));
+              mem.phash := ?Blob.fromArray(RepIndy.hash_val(thisTrx));
+              ignore history.add(thisTrx);
+              //One we add the block, we need to increase the lastIndex
+              mem.lastIndex := mem.lastIndex + 1;
 
-            // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
-            // 2) create new block according to steps 2-4 from ICDev ICRC3 implementation
-            // 3) calculate and update "phash" according to step 5 from ICDev ICRC3 implementation
-            // 4) add new block to ledger
-            // 5... (TBD) management of archives
-
-            // 1) translate A (ActionIlde: type from ledger project) to (Value: ICRC3 standard type defined in this same module)
-            // "encodeBlock" is responsible for this transformation
-            let encodedBlock: T.Value = encodeBlock(action);
-            // creat enew empty block entry
-            let trx = Vec.new<(Text, T.Value)>();
-            // Add phash to empty block (null if not the first block)
-            switch(mem.phash){
-                case(null) {};
-                case(?val){
-                Vec.add(trx, ("phash", #Blob(val)));
-                };
+              if(history.len() > state.constants.archiveProperties.maxActiveRecords){
+                  switch(state.cleaningTimer){ 
+                      case(null){ //only need one active timer
+                          state.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);  
+                      };
+                      case(_){
+                      };
+                  };
+              };
+              
+              dispatch_cert();
             };
-            // add encoded blockIlde to new block with phash
-            Vec.add(trx,("tx", encodedBlock));
-            // covert vector to map to make it consistent with Value type
-            let thisTrx = #Map(Vec.toArray(trx));
-            mem.phash := ?Blob.fromArray(RepIndy.hash_val(thisTrx));
-            ignore history.add(thisTrx);
-            //One we add the block, we need to increase the lastIndex
-            mem.lastIndex := mem.lastIndex + 1;
-
-            if(history.len() > state.constants.archiveProperties.maxActiveRecords){
-                switch(state.cleaningTimer){ 
-                    case(null){ //only need one active timer
-                        state.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);  
-                    };
-                    case(_){
-                    };
-                };
-            };
-
-            //Debug.print("before eturning successfully on rechain dispatch");
-            // let fblock = addPhash(action, state.phash);
-            // let encodedBlock = encodeBlock(fblock);
-            // ignore history.add(encodedBlock);
-            // state.phash := hashBlock(encodedBlock);
-
-            //debug if(debug_channel.add_record) D.print("about to certify " # debug_show(state.latest_hash));
-
-            //ILDE: from ICDev: certify the new record if the cert store is provided
-            
-            dispatch_cert();
 
             #Ok(blockId);
         };
@@ -291,14 +249,14 @@ module {
           let ?latest_hash = mem.phash else return;
           let ?gcs = env.get_certificate_store else return;
 
-          // Debug.print("have store" # debug_show(gcs()));
+
           let ct = CertTree.Ops(gcs());
-          ct.put([Text.encodeUtf8("last_block_index")], encodeBigEndian(mem.lastIndex));
+          ct.put([Text.encodeUtf8("last_block_index")], Utils.encodeBigEndian(mem.lastIndex));
           ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
           ct.setCertifiedData();
           
           let ?uc = env.updated_certification else return;
-          // Debug.print("have cert update");
+
           ignore uc(latest_hash, mem.lastIndex);
 
         };

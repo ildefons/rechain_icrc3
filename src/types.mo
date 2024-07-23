@@ -46,6 +46,7 @@ module {
     };
 
     public type InitArgs = {
+      archiveActive : Bool;
       maxActiveRecords : Nat;
       settleToRecords : Nat;
       maxRecordsInArchiveInstance : Nat;
