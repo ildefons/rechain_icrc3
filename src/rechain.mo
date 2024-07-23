@@ -204,7 +204,7 @@ module {
     };
 
 
-    public func check_clean_up<system>() : async () {
+    private func check_clean_up<system>() : async () {
 
       //clear the timer
       archiveState.cleaningTimer := null;
