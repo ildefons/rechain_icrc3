@@ -127,10 +127,7 @@ module {
       };
     };
 
-    private func updated_certification(cert : Blob, lastIndex : Nat) : Bool {
-      CertTree.Ops(mem.cert_store).setCertifiedData();
-      return true;
-    };
+
     private func get_certificate_store() : CertTree.Store {
       return mem.cert_store;
     };
@@ -236,8 +233,6 @@ module {
       ct.put([Text.encodeUtf8("last_block_index")], Utils.encodeBigEndian(mem.lastIndex));
       ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
       ct.setCertifiedData();
-
-      ignore updated_certification(latest_hash, mem.lastIndex);
 
     };
 
