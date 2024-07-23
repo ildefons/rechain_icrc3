@@ -49,10 +49,16 @@ describe("Cert", () => {
   beforeAll(async () => {
     pic = await PocketIc.create(process.env.PIC_URL, {nns:true}); 
 
+
+
     const fixture = await TestCan(pic);
     can = fixture.actor;
     canCanisterId = fixture.canisterId; 
 
+
+    await pic.resetTime();
+    const time = await pic.getTime();
+    console.log("date", new Date(time));
     // await can.set_ledger_canister();
 
     //await can.set_ledger_canister();
@@ -89,7 +95,7 @@ describe("Cert", () => {
 
     const rootKey = await pic.getPubKey(nnsSubnet.id);
 
-    console.log("rootkey:", rootKey, ", ", rootKey);
+    
 
     let data_cert: []|[DataCertificate] = await can.icrc3_get_tip_certificate();// : async ?Trechain.DataCertificate 
     if (data_cert != null) {
@@ -97,15 +103,37 @@ describe("Cert", () => {
       if (typeof ddddd != "undefined") {
         const certificate = ddddd.certificate;
         const witness = ddddd.hash_tree;
+        //console.log("certificate:", certificate, ", witness:", witness);
         // const agent = new HttpAgent();
         // await agent.fetchRootKey();
-        const tree = await verifyCertification({
-          canisterId: Principal.fromText(canCanisterId.toString()),
-          encodedCertificate: new Uint8Array(certificate).buffer,
-          encodedTree: new Uint8Array(witness).buffer,
-          rootKey: rootKey,//pubKey,//agent.rootKey,
-          maxCertificateTimeOffsetMs: 50000,
-        });
+
+        
+        let inputs = {
+              canisterId: canCanisterId,
+              encodedCertificate: new Uint8Array(certificate),
+              encodedTree: new Uint8Array(witness),
+              rootKey: new Uint8Array(rootKey),
+              maxCertificateTimeOffsetMs: 500000000,
+            };
+            console.log("inputs:", inputs)
+        
+        function i2hex(i:number ) {
+          return ('0' + i.toString(16)).slice(-2);
+        };
+
+        const cert_hex = Array.from(new Uint8Array(certificate)).map(i2hex).join('');
+        const wit_hex = Array.from(new Uint8Array(witness)).map(i2hex).join('');
+
+        console.log("certificate:", cert_hex);
+        console.log("witness:",wit_hex);
+
+        // const tree = await verifyCertification({
+        //   canisterId: Principal.fromText(canCanisterId.toString()),
+        //   encodedCertificate: cert_hex,//new Uint8Array(certificate),
+        //   encodedTree: new Uint8Array(witness),
+        //   rootKey:  new Uint8Array(rootKey),//pubKey,//agent.rootKey,
+        //   maxCertificateTimeOffsetMs: 50000,
+        // });
 
         // const treeHash = lookup_path(['count'], tree);
         // if (!treeHash) {
