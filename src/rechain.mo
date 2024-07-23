@@ -8,26 +8,6 @@ import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
 import CertifiedData "mo:base/CertifiedData";
 import Error "mo:base/Error";
-/*
-  TODO important:
-  1) O icrc3 certificates
-  2) O motoko system capabilities + newest base library + newest motoko compilers
-  3) O when creating new archive canister update controllers
-  4) remove all comments unless providing info
-  5) remove Debug.print
-  6) add icrc3 function for supportedBlocks
-
-  7) Test scenario when archive canister is offline and we add transactions
-  8) Test upgrade rechain user canister and check if memory persists
-  9) Test for memory leak - adding 1mil records that result in insignificant or no state changes, and check if memory gets bloated. Memory should stay small
-
-  Other:
-  O Undestand how new packages are added to the project of we just do "npm run test": 1) build.sh rebuilds ".mops" because it does mops sources that looks for mops.toml
-  Phash tests
-  Timer of archive cretion from 0 to original 10 sec
-  Test what happens if archive needs to be created when still previous one is being created
-  Use archive index type
-*/
 
 import T "./types";
 
@@ -193,7 +173,6 @@ module {
     };
 
     private func new_archive<system>(initArg : T.ArchiveInitArgs) : async ?(actor {}) {
-      Debug.print("New archive start");
       let ?this_canister = mem.canister else Debug.trap("No canister set");
 
       if (ExperimentalCycles.balance() > state.constants.archiveProperties.archiveCycles * 2) {
@@ -233,18 +212,13 @@ module {
       ct.put([Text.encodeUtf8("last_block_index")], Utils.encodeBigEndian(mem.lastIndex));
       ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
       ct.setCertifiedData();
-
     };
 
-    /// This method is from ICDev ICRC3 implementation
 
     public func check_clean_up<system>() : async () {
 
-      // preparation work: create an archive canister (start copying from ICDev)
-
       //clear the timer
       state.cleaningTimer := null;
-      //Debug.print("Checking clean up Ilde");
 
       //ensure only one cleaning job is running
 
@@ -263,9 +237,6 @@ module {
       let (archive_detail, available_capacity) = if (Map.size(mem.archives) == 0) {
         //no archive exists - create a new canister
 
-        //commits state and creates archive
-        Debug.print("New archive " # debug_show (state.constants.archiveProperties));
-
         let ?newArchive = await new_archive<system>({
           maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
           indexType = state.constants.archiveProperties.archiveIndexType;
@@ -283,16 +254,14 @@ module {
         ignore Map.put<Principal, T.TransactionRange>(mem.archives, Map.phash, Principal.fromActor(newArchive), newItem);
         ((Principal.fromActor(newArchive), newItem), state.constants.archiveProperties.maxRecordsInArchiveInstance);
       } else {
-        //check that the last one isn't full;
+        // check that the last one isn't full;
         let lastArchive = switch (Map.peek(mem.archives)) {
           //"If the Map is not empty, returns the last (key, value) pair in the Map. Otherwise, returns null.""
           case (null) { Debug.trap("mem.archives unreachable") }; //unreachable;
           case (?val) val;
         };
-        //Debug.print("else");
         if (lastArchive.1.length >= state.constants.archiveProperties.maxRecordsInArchiveInstance) {
-          //ILDE: last archive is full, create a new archive
-          //  Debug.print("Need a new canister");
+          // last archive is full, create a new archive
 
           let ?newArchive = await new_archive({
             maxRecords = state.constants.archiveProperties.maxRecordsInArchiveInstance;
@@ -360,7 +329,7 @@ module {
         if (Vec.size(toArchive) == archive_amount) break find;
       };
 
-      // ILDE: actually adding them
+      // actually adding them
 
       try {
         let result = await archive.append_transactions(Vec.toArray(toArchive));
@@ -407,13 +376,7 @@ module {
       return;
     };
 
-    /// code from ICDev
-    /// Returns the statistics of the migration
-    ///
-    /// This function returns the statistics of the migration.
-    ///
-    /// Returns:
-    /// - The migration statistics
+
     public func stats() : T.Stats {
       return {
         localLedgerSize = history.len(); //ILDE: Vec.size(state.ledger);
@@ -428,16 +391,7 @@ module {
       };
     };
 
-    /// code from ICDev
-    /// Returns a set of transactions and pointers to archives if necessary
-    ///
-    /// This function returns a set of transactions and pointers to archives if necessary.
-    ///
-    /// Arguments:
-    /// - `args`: The transaction range
-    ///
-    /// Returns:
-    /// - The result of getting transactions
+
 
     public func get_blocks(args : T.GetBlocksArgs) : T.GetBlocksResult {
       let local_ledger_length = history.len(); //ILDE Vec.size(state.ledger);
@@ -473,7 +427,6 @@ module {
             //icdev: Nat.sub((Nat.sub(state.lastIndex,state.firstIndex)), (Nat.sub(state.lastIndex, (thisArg.start + thisArg.length))))
           };
 
-          //Debug.print("getting local transactions" # debug_show(start,end));
           // icdev: buf.getOpt(1) // -> ?"b"
           //some of the items are on this server
           if (history.len() > 0) {
@@ -501,7 +454,6 @@ module {
       for (thisArgs in args.vals()) {
         if (thisArgs.start < mem.firstIndex) {
 
-          //Debug.print("archive settings are " # debug_show(Iter.toArray(Map.entries(mem.archives))));
           var seeking = thisArgs.start;
           label archive for (thisItem in Map.entries(mem.archives)) {
             if (seeking > Nat.sub(thisItem.1.start + thisItem.1.length, 1) or thisArgs.start + thisArgs.length <= thisItem.1.start) {
