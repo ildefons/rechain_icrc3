@@ -108,13 +108,6 @@ module {
     };
 
 
-    private func get_certificate_store() : CertTree.Store {
-      return mem.cert_store;
-    };
-
-    public func print_archives() : () {
-      Debug.print(debug_show (mem.archives));
-    };
 
     public func dispatch<system>(action : A) : ({ #Ok : BlockId; #Err : E }) {
       // Execute reducers
@@ -208,7 +201,7 @@ module {
     private func dispatch_cert() : () {
       let ?latest_hash = mem.phash else return;
 
-      let ct = CertTree.Ops(get_certificate_store());
+      let ct = CertTree.Ops(mem.cert_store);
       ct.put([Text.encodeUtf8("last_block_index")], Utils.encodeBigEndian(mem.lastIndex));
       ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
       ct.setCertifiedData();
@@ -379,22 +372,20 @@ module {
 
     public func stats() : T.Stats {
       return {
-        localLedgerSize = history.len(); //ILDE: Vec.size(state.ledger);
+        localLedgerSize = history.len(); 
         lastIndex = mem.lastIndex;
         firstIndex = mem.firstIndex;
         archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
         ledgerCanister = mem.canister;
-
         bCleaning = state.bCleaning;
         archiveProperties = state.constants.archiveProperties;
-
       };
     };
 
 
 
     public func get_blocks(args : T.GetBlocksArgs) : T.GetBlocksResult {
-      let local_ledger_length = history.len(); //ILDE Vec.size(state.ledger);
+      let local_ledger_length = history.len();
       let ledger_length = if (mem.lastIndex == 0 and local_ledger_length == 0) {
         0;
       } else {
@@ -501,7 +492,6 @@ module {
         };
       };
 
-      //build the result
       return {
         log_length = ledger_length;
         certificate = CertifiedData.getCertificate(); //will be null in update calls
@@ -514,7 +504,6 @@ module {
                 args = Vec.toArray(x.0);
                 callback = x.1;
               };
-
             },
           )
         );
@@ -584,7 +573,7 @@ module {
 
     public func get_tip_certificate() : ?T.DataCertificate {
 
-      let ct = CertTree.Ops(get_certificate_store());
+      let ct = CertTree.Ops(mem.cert_store);
       let blockWitness = ct.reveal([Text.encodeUtf8("last_block_index")]);
       let hashWitness = ct.reveal([Text.encodeUtf8("last_block_hash")]);
       let merge = MTree.merge(blockWitness, hashWitness);
