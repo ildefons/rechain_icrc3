@@ -59,7 +59,8 @@ module {
 
   public type Transaction = T.Value;
   public type AddTransactionsResponse = T.AddTransactionsResponse;
-
+  public type BlockType = T.BlockType;
+  
   public let DEFAULT_SETTINGS = {
     archiveActive = true;
     maxActiveRecords = 2000; // max size of ledger before archiving 
@@ -571,6 +572,10 @@ module {
       };
 
     };
+
+    public func icrc3_supported_block_types() : [T.BlockType] {
+      return archiveState.settings.supportedBlocks;
+    }
 
   };
 };
