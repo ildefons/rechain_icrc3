@@ -47,7 +47,8 @@ describe("Cert", () => {
   const jo = createIdentity('superSecretAlicePassword');
   
   beforeAll(async () => {
-    pic = await PocketIc.create(process.env.PIC_URL); 
+    pic = await PocketIc.create(process.env.PIC_URL, {nns:true}); 
+
     const fixture = await TestCan(pic);
     can = fixture.actor;
     canCanisterId = fixture.canisterId; 
@@ -78,19 +79,31 @@ describe("Cert", () => {
     let r_mint = await can.add_record(my_mint_action);
     expect(true).toBe('Ok' in r_mint);
 
+    // const subnets = pic.getApplicationSubnets();
+    // const pubKey = await pic.getPubKey(subnets[0].id);
+
+    const nnsSubnet = pic.getNnsSubnet();
+          if (!nnsSubnet) {
+            throw new Error('NNS subnet not found');
+          }
+
+    const rootKey = await pic.getPubKey(nnsSubnet.id);
+
+    console.log("rootkey:", rootKey, ", ", rootKey);
+
     let data_cert: []|[DataCertificate] = await can.icrc3_get_tip_certificate();// : async ?Trechain.DataCertificate 
     if (data_cert != null) {
       let ddddd: undefined|DataCertificate = data_cert[0];
       if (typeof ddddd != "undefined") {
         const certificate = ddddd.certificate;
         const witness = ddddd.hash_tree;
-        const agent = new HttpAgent();
-        await agent.fetchRootKey();
+        // const agent = new HttpAgent();
+        // await agent.fetchRootKey();
         const tree = await verifyCertification({
           canisterId: Principal.fromText(canCanisterId.toString()),
           encodedCertificate: new Uint8Array(certificate).buffer,
           encodedTree: new Uint8Array(witness).buffer,
-          rootKey: agent.rootKey,
+          rootKey: rootKey,//pubKey,//agent.rootKey,
           maxCertificateTimeOffsetMs: 50000,
         });
 
