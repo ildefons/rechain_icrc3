@@ -561,15 +561,11 @@ module {
       let hashWitness = ct.reveal([Text.encodeUtf8("last_block_hash")]);
       let merge = MTree.merge(blockWitness, hashWitness);
       let witness = ct.encodeWitness(merge);
-      return ?{
-        certificate = switch (CertifiedData.getCertificate()) {
-          case (null) {
-            return null;
-          };
-          case (?val) val;
-        };
+
+      do ? {{
+        certificate = CertifiedData.getCertificate()!;
         hash_tree = witness;
-      };
+      }};
 
     };
 
