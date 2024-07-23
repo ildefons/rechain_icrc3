@@ -76,6 +76,10 @@ actor class Delta({archive_controllers: [Principal]}) = this {
         return chain.get_archives(args);
     };
 
+    public query func icrc3_supported_block_types(): async [rechain.BlockType] {
+        return chain.icrc3_supported_block_types();
+    };
+
     public func set_ledger_canister(): async () {
         chain_mem.canister := ?Principal.fromActor(this);
     };
