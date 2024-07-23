@@ -325,6 +325,11 @@
   resolved "https://registry.yarnpkg.com/@dfinity/candid/-/candid-1.4.0.tgz#76eb59f86025aae14e4c46672a4c8cd4950e8bf0"
   integrity sha512-PsTJVn63ZM4A/6Xs5coI0zMFevSwJ8hcyh38LdH/92n6wi9UOTis1yc4qL5MZvvRCUAD0c3rVjELL+49E9sPyA==
 
+"@dfinity/certificate-verification@^2.4.0":
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/@dfinity/certificate-verification/-/certificate-verification-2.4.0.tgz#89cbc28b2c78e6deff46c54240e4a8bf6bf4365c"
+  integrity sha512-qoA7inx7fOqGNUc7sFO6KI/QyIy4kSigASxcz4+Ycwl7JsyAxYwOvd22R8vQeaOPcJ9qJTwjSzgqS/PGhQ6xPQ==
+
 "@dfinity/identity@^1.0.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@dfinity/identity/-/identity-1.4.0.tgz#4b16e12015a30dcf411139fcf428c10f638f54b7"
