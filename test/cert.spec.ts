@@ -127,13 +127,13 @@ describe("Cert", () => {
         console.log("certificate:", cert_hex);
         console.log("witness:",wit_hex);
 
-        // const tree = await verifyCertification({
-        //   canisterId: Principal.fromText(canCanisterId.toString()),
-        //   encodedCertificate: cert_hex,//new Uint8Array(certificate),
-        //   encodedTree: new Uint8Array(witness),
-        //   rootKey:  new Uint8Array(rootKey),//pubKey,//agent.rootKey,
-        //   maxCertificateTimeOffsetMs: 50000,
-        // });
+        const tree = await verifyCertification({
+          canisterId: canCanisterId,//Principal.fromText(canCanisterId.toString()),
+          encodedCertificate: new Uint8Array(certificate),
+          encodedTree: new Uint8Array(witness),
+          rootKey:  new Uint8Array(rootKey),//pubKey,//agent.rootKey,
+          maxCertificateTimeOffsetMs: 50000,
+        });
 
         // const treeHash = lookup_path(['count'], tree);
         // if (!treeHash) {
