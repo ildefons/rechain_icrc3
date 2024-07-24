@@ -26,33 +26,29 @@ module {
         public func reducer(action : T.Action) : Chain.ReducerResponse<T.ActionError> {
 
             switch(action.payload) {
-                case (#transfer(p)) { // ICRC3 schema: btype = "1xfer"
-                    //ILDEb
+                case (#transfer(p)) { 
                     let fee = switch (action.fee) {
                         case null 0;
                         case (?Nat) Nat;
                     }; 
-                    //ILDEe  
+                    
                     ignore do ? { if (fee != config.FEE) return #Err(#BadFee({ expected_fee = config.FEE })); };
-                    //let ?from_bacc = accountToBlob(p.from) else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
-                    //ILDEb
+                    
                     let from_principal_blob = p.from[0];
-                    //let from_subaccount_blob = p.from[1];Debug.print("t112");
+                
                     let from_subaccount_blob = if(p.from.size() > 1) p.from[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
                     let from_principal_principal = Principal.fromBlob(from_principal_blob);
                     let from_bacc = Principal.toLedgerAccount(from_principal_principal, ?from_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
-                    //ILDEe
-                    //let ?to_bacc = accountToBlob(p.to) else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
-                    //ILDEBegin
+              
                     let to_principal_blob = p.to[0];
-                    //let to_subaccount_blob = p.to[1];
+        
                     let to_subaccount_blob = if(p.to.size() > 1) p.to[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
                     let to_principal_principal = Principal.fromBlob(to_principal_blob);
                     
                     let to_bacc = Principal.toLedgerAccount(to_principal_principal, ?to_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
-                    //IlDEEnd                    
+                          
                     let bal = get_balance(from_bacc);
                     let to_bal = get_balance(to_bacc);
                     if (bal < p.amt + config.FEE) return #Err(#InsufficientFunds({ balance = bal }));
@@ -63,35 +59,24 @@ module {
                         }
                     );
                 };
-                case (#transfer_from(p)) { // ICRC3 schema: btype = "2xfer"
-                    //ILDE: TBD;
-                    #Ok(func(_){});    //IMHERE
+                case (#transfer_from(p)) { 
+                    #Ok(func(_){});    
                 };
                 case (#burn(p)) {
-                    //let ?from_bacc = accountToBlob(p.from) else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
-                    //ILDEb
-                   
+                              
                     let from_principal_blob = p.from[0];
                
                     let from_subaccount_blob = if(p.from.size() > 1) p.from[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
-
-                    //let from_subaccount_blob = p.from[1];
               
                     let from_principal_principal = Principal.fromBlob(from_principal_blob);
-                
-                    //Debug.print(debug_show("")); 
+
                     let from_bacc = Principal.toLedgerAccount(from_principal_principal, ?from_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid From Subaccount"; error_code = 1111 }));
-                    //ILDEe
              
                     let bal = get_balance(from_bacc);
-
-                    //Debug.print("balance:"#debug_show(bal));
-                    //Debug.print("to burn:"#debug_show(p.amt));
-                    //Debug.print("config fee:"#debug_show(config.FEE));
      
                     if (bal < p.amt + config.FEE) return #Err(#BadBurn({ min_burn_amount = config.FEE }));
-                    //Debug.print("GOOD");
+        
                     #Ok(
                         func(_) {
                             put_balance(from_bacc, bal - p.amt - config.FEE);
@@ -99,18 +84,15 @@ module {
                     );
                 };
                 case (#mint(p)) {
-                    //let ?to_bacc = accountToBlob(p.to) else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
-                    //ILDEBegin
 
                     let to_principal_blob = p.to[0];
 
                     let to_subaccount_blob = if(p.to.size() > 1) p.to[1] else Blob.fromArray([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
 
-                    //let to_subaccount_blob = p.to[1]; //<<----this gives error when no sub-account
                     let to_principal_principal = Principal.fromBlob(to_principal_blob);
                     let to_bacc = Principal.toLedgerAccount(to_principal_principal, ?to_subaccount_blob) 
                         else return #Err(#GenericError({ message = "Invalid To Subaccount"; error_code = 1112 }));
-                    //IlDEEnd     
+  
                     let to_bal = get_balance(to_bacc);
                     #Ok(
                         func(_) {
