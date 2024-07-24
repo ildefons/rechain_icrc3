@@ -2,7 +2,7 @@ import { PocketIcServer } from '@hadronous/pic';
 
 
 module.exports = async function (): Promise<void> {
-  const pic = process.env['NO_MOTOKO_OUTPUT'] ? await PocketIcServer.start() : await PocketIcServer.start({showRuntimeLogs:true, showCanisterLogs:true });
+  const pic = process.env['NO_MOTOKO_OUTPUT'] ? await PocketIcServer.start() : await PocketIcServer.start({showRuntimeLogs:false, showCanisterLogs:true });
 
   const url = pic.getUrl();
 

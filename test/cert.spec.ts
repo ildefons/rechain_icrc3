@@ -138,10 +138,10 @@ describe("Cert", () => {
         console.log("witness:",wit_hex);
 
         const tree = await verifyCertification({
-          canisterId: canCanisterId,//Principal.fromText(canCanisterId.toString()),
+          canisterId: canCanisterId,
           encodedCertificate: new Uint8Array(certificate),
           encodedTree: new Uint8Array(witness),
-          rootKey:  new Uint8Array(rootKey),//pubKey,//agent.rootKey,
+          rootKey:  new Uint8Array(rootKey),
           maxCertificateTimeOffsetMs: 50000,
         });
 

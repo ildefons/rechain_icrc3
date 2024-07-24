@@ -290,7 +290,10 @@ actor Self {
         encodeBlock = encodeBlock;
         reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];  
     });
-    
+
+    ignore Timer.setTimer<system>(#seconds 0, func () : async () {
+        await chain.start_archiving<system>();
+    });
 
     public shared(msg) func set_ledger_canister(): async () {
         chain_mem.canister := ?Principal.fromActor(Self);
@@ -300,7 +303,7 @@ actor Self {
     public shared(msg) func add_record(x: T.Action): async (DispatchResult) {
         //return icrc3().add_record<system>(x, null);
 
-        let ret = chain.dispatch<system>(x);  //handle error
+        let ret = chain.dispatch(x);  //handle error
         //add block to ledger
 
         return ret;
@@ -310,7 +313,7 @@ actor Self {
 
     // ICRC-1
     public shared ({ caller }) func icrc1_transfer(req : ICRC.TransferArg) : async ICRC.Result {
-        let ret = transfer<system>(caller, req);
+        let ret = transfer(caller, req);
         ret;
     };
 
@@ -318,7 +321,7 @@ actor Self {
         balances.get(acc)
     };
  
-    private func transfer<system>(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
+    private func transfer(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
         let from : ICRC.Account = {
             owner = caller;
             subaccount = req.from_subaccount;
@@ -401,7 +404,7 @@ actor Self {
             payload = payload;
         };
 
-        let ret = chain.dispatch<system>(action);
+        let ret = chain.dispatch(action);
 
         return ret;
 
@@ -410,8 +413,7 @@ actor Self {
     public type DispatchResult = {#Ok : Nat;  #Err: T.ActionError };
 
     public func dispatch(actions: [T.Action]): async [DispatchResult] {
-        [];
-        // Array.map(actions, func(x: T.Action): DispatchResult = chain.dispatch(x));
+        Array.map(actions, func(x: T.Action): DispatchResult = chain.dispatch(x));
     };
 
 };

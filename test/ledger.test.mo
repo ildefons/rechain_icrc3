@@ -291,6 +291,9 @@ actor Self {
         reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];  
     });
     
+    ignore Timer.setTimer<system>(#seconds 0, func () : async () {
+        await chain.start_archiving<system>();
+    });
 
     public shared(msg) func set_ledger_canister(): async () {
         chain_mem.canister := ?Principal.fromActor(Self);
@@ -300,7 +303,7 @@ actor Self {
     public shared(msg) func add_record(x: T.Action): async (DispatchResult) {
         //return icrc3().add_record<system>(x, null);
 
-        let ret = chain.dispatch<system>(x);  //handle error
+        let ret = chain.dispatch(x);  //handle error
         //add block to ledger
 
         return ret;
@@ -401,7 +404,7 @@ actor Self {
             payload = payload;
         };
 
-        let ret = chain.dispatch<system>(action);
+        let ret = chain.dispatch(action);
 
         return ret;
 

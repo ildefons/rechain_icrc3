@@ -12,8 +12,6 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.Archive
 
   let canister_last_modified = Time.now();
 
-  Debug.print("new archive created with the following args" # debug_show(_args));
-
   type Transaction = T.Value;
   type MemoryBlock = {
       offset : Nat64;
