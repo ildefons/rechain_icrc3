@@ -92,7 +92,7 @@ module {
 
 
 
-    public func dispatch<system>(action : A) : ({ #Ok : BlockId; #Err : E }) {
+    public func dispatch(action : A) : ({ #Ok : BlockId; #Err : E }) {
       // Execute reducers
       let reducerResponse = Array.map<ActionReducer<A, E>, ReducerResponse<E>>(reducers, func(fn) = fn(action));
       // Check if any reducer returned an error and terminate if so
@@ -123,21 +123,15 @@ module {
         //One we add the block, we need to increase the lastIndex
         mem.lastIndex := mem.lastIndex + 1;
 
-        if (history.len() > archiveState.settings.maxActiveRecords) {
-          switch (archiveState.cleaningTimer) {
-            case (null) {
-              //only need one active timer
-              archiveState.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
-            };
-            case (_) {};
-          };
-        };
+
 
         dispatch_cert();
       };
 
       #Ok(blockId);
     };
+
+
 
     public func upgrade_archives() : async () {
 
@@ -352,6 +346,16 @@ module {
       return;
     };
 
+    public func start_archiving<system>() : async () {
+
+        if (history.len() > archiveState.settings.maxActiveRecords) {
+          if (Option.isNull(archiveState.cleaningTimer)) {
+              archiveState.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
+          }
+        };
+
+        ignore Timer.setTimer<system>(#seconds(30), start_archiving);
+    };
 
     public func stats() : T.Stats {
       return {
