@@ -4,7 +4,7 @@ import ICRC "./ledger/icrc";
 import U "./ledger/utils";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
-import SWB "mo:swb/Stable";
+import SWB "mo:swbstable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 //import Deduplication "./reducers/deduplication";
@@ -14,7 +14,7 @@ import T "./ledger/types";
 import Balances "./ledger/reducers/balances";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
-import rechain "../src/rechain";
+import rechain "../src/lib";
 import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";
 import RepIndy "mo:rep-indy-hash";
@@ -217,65 +217,7 @@ actor Self {
         encodeBlock(myin);        
     };
 
-    /// Base methods for testing
-    // public shared({caller}) func do_mint(caller_str: Text, to_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat) {
-    //     //<---- remove caller_str 
-    //     //<-----Principal.toText()
-    //     let myaction: T.Action = {
-    //         ts = ts_nat;
-    //         created_at_time = null;
-    //         fee = null;
-    //         memo = null; 
-    //         caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
-    //         payload = #mint({
-    //             amt=Nat64.toNat(amt_nat);
-    //             //to=[("un4fu-tqaaa-aaaab-qadjq-cai":Blob),("0" : Blob)];
-    //             to=[(Text.encodeUtf8(to_str) : Blob),("0" : Blob)];
-    //         });
-    //     };
-    //     let aux = await add_record(myaction);
-    //     return aux;
-    // };
-
-    // public func do_burn(caller_str: Text, from_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat) {
-
-    //     let myaction: T.Action = {
-    //         ts = ts_nat;
-    //         created_at_time = null;
-    //         fee = null;
-    //         memo = null; 
-    //         caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
-    //         payload = #burn({
-    //             amt=Nat64.toNat(amt_nat);
-    //             from=[(Text.encodeUtf8(from_str) : Blob),("0" : Blob)];
-    //         });
-    //     };
-    //     let aux = await add_record(myaction);
-    //     return aux;
-    // };
-    
-    // public func do_transfer(caller_str: Text, to_str: Text, from_str: Text, amt_nat: Nat64, ts_nat: Nat64): async (Nat) {
-
-    //     let myaction: T.Action = {
-    //         ts = ts_nat;
-    //         created_at_time = null;
-    //         fee = null;
-    //         memo = null; 
-    //         caller = let principal = Principal.fromText(caller_str);//"un4fu-tqaaa-aaaab-qadjq-cai"); 
-    //         payload = #transfer({
-    //             amt=Nat64.toNat(amt_nat);
-    //             to=[(Text.encodeUtf8(to_str) : Blob),("0" : Blob)];
-    //             from=[(Text.encodeUtf8(from_str) : Blob),("0" : Blob)];
-    //         });
-    //     };
-    //     let aux = await add_record(myaction);
-    //     return aux;
-    // };
-
     public func test2(): async (Nat) {
-
-        // ILDE: I need to set this manually 
-        //chain.set_ledger_canister(Principal.fromActor(Self));
 
         let mymint: T.Action = {
             ts = 3;
@@ -345,14 +287,8 @@ actor Self {
     var chain = rechain.Chain<T.Action, T.ActionError>({ 
         settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
         mem = chain_mem;
-        encodeBlock = encodeBlock;//func(b: T.Action) = #Blob("0" : Blob); //("myschemaid", to_candid (b)); // ERROR: this is innecessary. We need to retrieve blocks
-                                                            // action.toGenericValue: I have to write it
-                                                            // it converts the action to generic value!!!
-                                                            // it converts to the action type to generic "value" type
-                                                            // "to_candid" is different implementation in different languages
-                                                            // instead  
-                                                            // !!!! maybe the order of functions inside the dispatch of the rechain we need to re-order 
-        reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];      //<-----REDO
+        encodeBlock = encodeBlock;
+        reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];  
     });
     
 
@@ -381,31 +317,14 @@ actor Self {
     public query func icrc1_balance_of(acc: ICRC.Account) : async Nat {
         balances.get(acc)
     };
-
-    // ILDE: TO BE DONE
-    // Oversimplified ICRC-4
-    // public shared({caller}) func batch_transfer(req: [ICRC.TransferArg]) : async [ICRC.Result] {
-    //     Array.map<ICRC.TransferArg, ICRC.Result>(req, func (r) = transfer(caller, r));
-    // };
-
-    // ILDETO BE DONE!!!
-    // ---->I understand I need a different get_transactions that is consistent with ICRC3 standard format
-    // ----> So I need to convert motoko objects to ICRC3 blocks 
-    // ----> It also says that "It also needs archival mechanism that spawns canisters, move blocks to them" (later)
-    // . Alternative to ICRC-3 
-    // public query func get_transactions(req: rechain.GetBlocksRequest) : async rechain.GetTransactionsResponse {
-    //     chain.get_transactions(req);
-    // };
-
-    // --
-  
+ 
     private func transfer<system>(caller:Principal, req:ICRC.TransferArg) : ICRC.Result {
         let from : ICRC.Account = {
             owner = caller;
             subaccount = req.from_subaccount;
         };
 
-        let payload = if (from == config.MINTING_ACCOUNT) {    // ILDE: repassar payload
+        let payload = if (from == config.MINTING_ACCOUNT) {   
             let pri_blob: Blob = Principal.toBlob(req.to.owner);
             let aux = req.to.subaccount;
             let to_blob: [Blob] = switch aux {
@@ -425,7 +344,7 @@ actor Self {
                 from = from_blob;
                 amt = req.amount;
             });
-        } else if (false){ //ILDE: This never happens is here to avoid return type error
+        } else if (false){
             let fee:Nat = switch(req.fee) {
                 case (?Nat) Nat;
                 case (_) 0:Nat;

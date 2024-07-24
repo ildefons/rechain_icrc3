@@ -4,7 +4,7 @@ import ICRC "./ledger/icrc";
 import U "./ledger/utils";
 import Array "mo:base/Array";
 import Blob "mo:base/Blob";
-import SWB "mo:swb/Stable";
+import SWB "mo:swbstable";
 import Debug "mo:base/Debug";
 import Nat "mo:base/Nat";
 //import Deduplication "./reducers/deduplication";
@@ -14,7 +14,7 @@ import T "./ledger/types";
 import Balances "./ledger/reducers/balances";
 import Sha256 "mo:sha2/Sha256";
 //ILDE
-import rechain "../src/rechain";
+import rechain "../src/lib";
 import Trechain "../src/types";
 import Vec "mo:vector";
 import Nat64 "mo:base/Nat64";

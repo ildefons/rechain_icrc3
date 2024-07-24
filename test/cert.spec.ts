@@ -29,12 +29,17 @@ import { toState } from "@infu/icblast";
 
 const WASM_PATH = resolve(__dirname, "./build/cert.wasm");
 export async function TestCan(pic:PocketIc) {
-    
+  
+  const nnsSubnet = pic.getNnsSubnet();
+  if (!nnsSubnet) {
+      throw new Error('NNS subnet not found');
+  }  
+
   const fixture = await pic.setupCanister<TestService>({
       idlFactory: TestIdlFactory,
       wasm: WASM_PATH,
       arg: IDL.encode(init({ IDL }), []),
-  });
+      targetSubnetId:nnsSubnet.id,});
 
   return fixture;
 };
@@ -47,8 +52,13 @@ describe("Cert", () => {
   const jo = createIdentity('superSecretAlicePassword');
   
   beforeAll(async () => {
-    pic = await PocketIc.create(process.env.PIC_URL, {nns:true}); 
 
+    // const nnsSubnet = pic.getNnsSubnet();
+    // if (!nnsSubnet) {
+    //   throw new Error('NNS subnet not found');
+    // }
+
+    pic = await PocketIc.create(process.env.PIC_URL, {nns:true}); 
 
 
     const fixture = await TestCan(pic);
@@ -89,9 +99,9 @@ describe("Cert", () => {
     // const pubKey = await pic.getPubKey(subnets[0].id);
 
     const nnsSubnet = pic.getNnsSubnet();
-          if (!nnsSubnet) {
-            throw new Error('NNS subnet not found');
-          }
+    if (!nnsSubnet) {
+      throw new Error('NNS subnet not found');
+    }
 
     const rootKey = await pic.getPubKey(nnsSubnet.id);
 

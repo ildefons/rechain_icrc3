@@ -10,7 +10,8 @@
     "test:ledger": "NO_MOTOKO_OUTPUT=true jest -c ./jest.config.ts -t 'Ledger'",
     "test:delta": "NO_MOTOKO_OUTPUT=true jest -c ./jest.config.ts -t 'Delta'",
     "test:delta:out": "jest -c ./jest.config.ts -t 'Delta'",
-    "test:cert": "jest -c ./jest.config.ts -t 'Cert'"
+    "test:cert": "jest -c ./jest.config.ts -t 'Cert'",
+    "test:phash": "jest -c ./jest.config.ts -t 'phash'"
   },
   "dependencies": {
     "@dfinity/agent": "^1.0.0",
