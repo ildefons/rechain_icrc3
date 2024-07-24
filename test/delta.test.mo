@@ -1,7 +1,7 @@
 import Principal "mo:base/Principal";
 import Blob "mo:base/Blob";
 import Nat "mo:base/Nat";
-import rechain  "../src/rechain";
+import rechain  "../src";
 import Nat64 "mo:base/Nat64";
 import Timer "mo:base/Timer";
 import Vector "mo:vector";
@@ -31,7 +31,7 @@ actor class Delta({archive_controllers: [Principal]}) = this {
     stable let chain_mem  = rechain.Mem();
 
     func encodeBlock(b: Action): rechain.Value {
-        let trx: rechain.Value  = #Map([
+        #Map([
             ("ts", #Nat(Nat64.toNat(b.ts))),
             ("created_at_time", #Nat(Nat64.toNat(b.created_at_time))),
             ("memo", #Blob(b.memo)),
