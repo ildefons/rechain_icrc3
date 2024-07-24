@@ -64,6 +64,9 @@ actor class Delta({archive_controllers: [Principal]}) = this {
         reducers = [];
     });
     
+    ignore Timer.setTimer<system>(#seconds 0, func () : async () {
+        await chain.start_archiving<system>();
+    });
     // -----
     
 
@@ -92,12 +95,12 @@ actor class Delta({archive_controllers: [Principal]}) = this {
     
     public type DispatchResult = {#Ok: rechain.BlockId; #Err: ActionError };
 
-    private func testt<system>(x:Action): DispatchResult { chain.dispatch<system>(x) };
+    private func testt<system>(x:Action): DispatchResult { chain.dispatch(x) };
 
     public func dispatch(actions: [Action]): async [DispatchResult] {
         let v = Vector.new<DispatchResult>();
         for (a in actions.vals()) {
-            Vector.add(v, chain.dispatch<system>(a));
+            Vector.add(v, chain.dispatch(a));
         };
         Vector.toArray(v);
     };
