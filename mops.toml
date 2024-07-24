@@ -1,12 +1,18 @@
+[package]
+name = "rechain"
+version = "1.0.0"
+description = "Rechain"
+repository = "https://github.com/neutrinomic/rechain"
+keywords = [ "history", "events", "icrc3", "archive" ]
+license = "Apache-2.0"
+
 [dependencies]
 base = "0.11.3"
 map = "9.0.1"
-swb = "https://github.com/infu/swb"
 sha2 = "0.0.4"
 vector = "0.3.1"
 rep-indy-hash = "0.1.1"
 stable-write-only = "https://github.com/skilesare/StableWriteOnly.mo#v0.1.0@02e9aac74bdbed86b52ebed985d82b6ef66a76d8"
-
-[dev-dependencies]
+swbstable = "1.1.1"
 itertools = "0.2.1"
-cert = "https://github.com/nomeata/ic-certification"
+ic-certification = "0.1.3"
