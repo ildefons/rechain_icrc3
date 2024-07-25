@@ -7,7 +7,7 @@ import {
   _SERVICE as TestService,
   idlFactory as TestIdlFactory,
   init,
-} from "./build/ledger.idl.js";
+} from "./build/phash.idl.js";
 
 import {
   Action,
@@ -16,21 +16,19 @@ import {
   TransactionRange,
   GetTransactionsResult,
   Value__1,
-} from "./build/ledger.idl.js";
+} from "./build/phash.idl.js";
 
-
-// ILDE import {ICRCLedgerService, ICRCLedger} from "./icrc_ledger/ledgerCanister";
 //@ts-ignore
 import { toState } from "@infu/icblast";
 // Jest can't handle multi threaded BigInts o.O That's why we use toState
 
-const WASM_PATH = resolve(__dirname, "./build/ledger.wasm");
+const WASM_PATH = resolve(__dirname, "./build/phash.wasm");
 
 export async function TestCan(pic: PocketIc, ledgerCanisterId: Principal) {
   const fixture = await pic.setupCanister<TestService>({
     idlFactory: TestIdlFactory,
     wasm: WASM_PATH,
-    arg: IDL.encode(init({ IDL }), []), //{ ledgerId: ledgerCanisterId }
+    arg: IDL.encode(init({ IDL }), []), 
   });
 
   return fixture;
@@ -64,7 +62,7 @@ function decodeBlock(my_blocks:GetTransactionsResult, block_pos:number ) {
     if (block_pos>0) {
       if (my_blocks.blocks[block_pos-1].block[0] !== undefined) {
         my_auxm1 = my_blocks.blocks[block_pos-1].block[0];
-        console.log ("my_auxm1:",my_auxm1);
+        //console.log ("my_auxm1:",my_auxm1);
       };
     }
     if ('Map' in aux) {
@@ -198,342 +196,41 @@ describe("phash", () => {
           },
       },
     };
-    console.log("a1");
-    let r_mint = await can.add_record(my_mint_action);console.log("a2");
-    let r_mint2 = await can.add_record(my_mint_action);console.log("a3");
-    // //let r_mint2 = await can.add_record(my_mint_action);
-    console.log("r_mint2:", r_mint2);
     
-    // //expect(r_mint).toBe(0n);
-    // //let tr: TransactionRange =  {start:10n,length:3n};
+    let r_mint = await can.add_record(my_mint_action);
+    let r_mint2 = await can.add_record(my_mint_action);
+    let r_mint3 = await can.add_record(my_mint_action);
+    
     let my_block_args: GetBlocksArgs = [
-      {start:0n,length:2n},   // I want to get the second block
-      //{start:20n,length:3n},
+      {start:0n,length:3n}, 
     ]
 
     let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
-    //console.log("myblocks0:",my_blocks['blocks'][0]['block'][0]);
-    //console.log("myblocks1:",my_blocks['blocks'][1]['block'][0]);
+
     const decodedBlock0 = decodeBlock(my_blocks,0);   
     const decodedBlock1 = decodeBlock(my_blocks,1); 
+    const decodedBlock2 = decodeBlock(my_blocks,2); 
     const john0_to = john0.getPrincipal().toUint8Array();
 
-    //console.log("1:",john0.getPrincipal().toUint8Array());
-    //console.log("2:",decodedBlock1.payload_to);
-    //console.log(decodedBlock0);
     expect(true).toBe(JSON.stringify(john0_to) === JSON.stringify(decodedBlock1.payload_to));
 
-    console.log ("phash:", decodedBlock1.phash);
-    // // expect(decodedBlock0.block_id).toBe(0n);
-    // console.log(my_blocks);
-    // expect(my_blocks.log_length).toBe(1n);
+    if (typeof decodedBlock1.auxm1 !== 'undefined') {
+      const auxm1 = decodedBlock1.auxm1;
+      const phash_hat1 = await can.compute_hash(auxm1);
+      expect(true).toBe(JSON.stringify(decodedBlock1.phash) === JSON.stringify(phash_hat1[0]));
+    };
+
+    if (typeof decodedBlock2.auxm1 !== 'undefined') {
+      const auxm2 = decodedBlock2.auxm1;
+      const phash_hat2 = await can.compute_hash(auxm2);
+      expect(true).toBe(JSON.stringify(decodedBlock2.phash) === JSON.stringify(phash_hat2[0]));
+    };
+
+
+
+    
   });
 
-  // it("check_last_online_ledger_position", async () => {
-  //   // destroy canister to make sure ledger size is 0
-  //   await pic.tearDown(); 
-  //   // create canister again 
-  //   pic = await PocketIc.create(process.env.PIC_URL); //ILDE create();
-  //   const fixture = await TestCan(pic, Principal.fromText("aaaaa-aa"));
-  //   can = fixture.actor;
-  //   canCanisterId = fixture.canisterId; 
-
-  //   let my_mint_action: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         mint : {
-  //             to : [bob.getPrincipal().toUint8Array()],
-  //             amt : 100n,
-  //         },
-  //     },
-  //   };
-
-  //   let i = 0n;
-  //   const num_blocks = 10n;
-  //   for (; i < num_blocks; i++) {
-  //     let r = await can.add_record(my_mint_action);
-  //   }
-
-  //   let my_block_args: GetBlocksArgs = [
-  //      {start:0n,length: num_blocks},
-  //   ]
-
-  //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
- 
-  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
-
-  //   const num_blocks2 = 11n;
-  //   my_block_args = [
-  //     {start:0n,length: num_blocks2},
-  //   ]
-
-  //   my_blocks = await can.icrc3_get_blocks(my_block_args);
-
-  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks);
-
-  //   const num_blocks3 = 9n;
-  //   my_block_args = [
-  //     {start:0n,length: num_blocks3},
-  //   ]
-
-  //   my_blocks = await can.icrc3_get_blocks(my_block_args);
-
-  //   expect(BigInt(my_blocks.blocks.length)).toBe(num_blocks3);
-  //   expect(BigInt(my_blocks.log_length)).toBe(num_blocks);
-
-
-  //   // for (let i=0; i < num_blocks3; i++) {
-  //   //   console.log(i,my_blocks.blocks[i].id);      
-  //   // }
-
-  // });
-
-  // it("add_mint_record1", async () => {
-  //   let my_action: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         // #burn : {
-  //         //     amt: Nat;
-  //         //     from: [Blob];
-  //         // };
-  //         // #transfer : {
-  //         //     to : [Blob];
-  //         //     from : [Blob];
-  //         //     amt : Nat;
-  //         // };
-  //         // #transfer_from : {
-  //         //     to : [Blob];
-  //         //     from : [Blob];
-  //         //     amt : Nat;
-  //         // };
-  //         mint : {
-  //             to : [ilde.getPrincipal().toUint8Array()],
-  //             amt : 100n,
-  //         },
-  //     },
-  //   };
-  //   let r = await can.add_record(my_action);
-  //   expect(true).toBe('Ok' in r);
-  // });
-
-  // it("add_mint_burn_check1", async () => {
-  //   let my_mint_action: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         mint : {
-  //             to : [john4.getPrincipal().toUint8Array()],
-  //             amt : 100n,
-  //         },
-  //     },
-  //   };
-  //   let my_burn_action: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         burn : {
-  //             amt : 50n,
-  //             from : [john4.getPrincipal().toUint8Array()],
-  //         },
-  //     },
-  //   };
-  //   let r_mint = await can.add_record(my_mint_action);
-  //   let r_burn = await can.add_record(my_burn_action);
-
-  //   //{ owner : Principal; subaccount : ?Blob };
-  //   let my_account: Account = {
-  //     owner : john4.getPrincipal(),
-  //     subaccount: [], 
-  //   };
-  //   let r_bal = await can.icrc1_balance_of(my_account);  
-
-  //   expect(r_bal).toBe(50n);
-  // });
-
-  // it("trigger_archive1", async () => {
-  //   let my_action: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         mint : {
-  //             to : [john1.getPrincipal().toUint8Array()],
-  //             amt : 100n,
-  //         },
-  //     },
-  //   };
-
-  //   let i = 0n;
-  //   for (; i < 5; i++) {
-  //     let r = await can.add_record(my_action);
-  //     console.log(i);
-  //   }
-    
-  //   expect(i).toBe(5n);
-  // });
-
-  // it("retrieve_blocks_online1", async () => {
-  //   //let tr: TransactionRange =  {start:10n,length:3n};
-  //   let my_block_args: GetBlocksArgs = [
-  //     {start:0n,length:3n},
-  //     //{start:20n,length:3n},
-  //   ]
-  //   //   public type TransactionRange = {
-  //   //     start : Nat;
-  //   //     length : Nat;
-  //   // };
-  //   //   public type GetTransactionsResult = {
-  //   //     // Total number of transactions in the
-  //   //     // transaction log
-  //   //     log_length : Nat;        
-  //   //     blocks : [{ id : Nat; block : ?Value }];
-  //   //     archived_blocks : [ArchivedTransactionResponse];
-  //   // };
-  //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
-  //   expect(my_blocks.blocks.length).toBe(3);
-  // });
-
-  // it("check_online_block_content1", async () => {
-  //   //let tr: TransactionRange =  {start:10n,length:3n};
-  //   let my_block_args: GetBlocksArgs = [
-  //     {start:0n,length:2n},
-  //     //{start:20n,length:3n},
-  //   ]
-
-  //   let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
-    
-  //   const decodedBlock0 = decodeBlock(my_blocks,0);
-  //   const decodedBlock1 = decodeBlock(my_blocks,1);
-  //   expect(decodedBlock0.block_id).toBe(0n);
-  //   expect(decodedBlock1.block_id).toBe(1n);
-  //   expect(my_blocks.blocks.length).toBe(2);
-  // });
-
-  // it("check_balance_afater_mints_burns_transfers1", async () => {
-  //   let my_mint_action1: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         mint : {
-  //             to : [john8.getPrincipal().toUint8Array()],
-  //             amt : 100n,
-  //         },
-  //     },
-  //   };
-  //   let my_burn_action1: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         burn : {
-  //             amt : 50n,
-  //             from : [john8.getPrincipal().toUint8Array()],
-  //         },
-  //     },
-  //   };
-  //   let my_mint_action2: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         mint : {
-  //             to : [john9.getPrincipal().toUint8Array()],
-  //             amt : 1000n,
-  //         },
-  //     },
-  //   };
-  //   let my_burn_action2: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         burn : {
-  //             amt : 500n,
-  //             from : [john9.getPrincipal().toUint8Array()],
-  //         },
-  //     },
-  //   };
-  //   let my_transfer_action1: Action = {
-  //     ts : 0n,
-  //     created_at_time : [0n], //?Nat64
-  //     memo: [], //?Blob;
-  //     caller: jo.getPrincipal(),  
-  //     fee: [], //?Nat
-  //     payload : {
-  //         transfer : {
-  //             amt : 100n,
-  //             from : [john9.getPrincipal().toUint8Array()],
-  //             to: [john8.getPrincipal().toUint8Array()],
-  //         },
-  //     },
-  //   };
-
-  //   let r_mint1 = await can.add_record(my_mint_action1);
-  //   let r_burn1 = await can.add_record(my_burn_action1);
-  //   let r_mint2 = await can.add_record(my_mint_action2);
-  //   let r_burn2 = await can.add_record(my_burn_action2);
-
-  //   let my_account1: Account = {
-  //     owner : john8.getPrincipal(),
-  //     subaccount: [], 
-  //   };
-  //   let r_bal1 = await can.icrc1_balance_of(my_account1);  
-  //   expect(r_bal1).toBe(50n);
-
-  //   let my_account2: Account = {
-  //     owner : john9.getPrincipal(),
-  //     subaccount: [], 
-  //   };
-  //   let r_bal2 = await can.icrc1_balance_of(my_account2);  
-  //   expect(r_bal2).toBe(500n);
-
-  //   let r_transfer1 = await can.add_record(my_transfer_action1);
-  //   let r_bal3 = await can.icrc1_balance_of(my_account2); 
-  //   console.log("balance of john9:",r_bal3); 
-  //   expect(r_bal3).toBe(400n);
-  // });
-
-  // // O check bugs in get_blocks (-1)
-  // // O do decoding function to clean testing code 
-  // // O test very last block position in online ledger
-  // // O test content of blocks
-  // // O test account balnce after combinations of mint, burn and transfers
-  // // O test ids
-  // //    L> Need to return block id after creating it
-  // // Dedup reducer test
-  // // test archived retrival of archived blocks
-  // // create many archives
-
-  // async function passTime(n: number) {
-  //   for (let i = 0; i < n; i++) {
-  //     await pic.advanceTime(3 * 1000);
-  //     await pic.tick(2);
-  //   }
-  // }
+  
 });
 
