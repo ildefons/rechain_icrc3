@@ -276,7 +276,6 @@ actor Self {
     };
 
     public query func compute_hash(auxm1: rechain.Value) : async ?Blob {
-        //let thisTrx = #Map(Vec.toArray(trx));
         let ret = ?Blob.fromArray(RepIndy.hash_val(auxm1));
         return ret;
     };

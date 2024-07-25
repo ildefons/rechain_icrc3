@@ -19,6 +19,7 @@ import CertTree "mo:ic-certification/CertTree";
 import MTree "mo:ic-certification/MerkleTree";
 import Option "mo:base/Option";
 import Utils "./utils";
+import Nat8 "mo:base/Nat8";
 
 module {
 
@@ -175,11 +176,20 @@ module {
 
     };
 
+    // public func fromNat(len : Nat, n : Nat) : [Nat8] {
+    //     let ith_byte = func(i : Nat) : Nat8 {
+    //         assert(i < len);
+    //         let shift : Nat = 8 * (len - 1 - i);
+    //         Nat8.fromIntWrap(n / 2**shift)
+    //     };
+    //     Array.tabulate<Nat8>(len, ith_byte)
+    // };
+
     private func dispatch_cert() : () {
       let ?latest_hash = mem.phash else return;
 
       let ct = CertTree.Ops(mem.cert_store);
-      ct.put([Text.encodeUtf8("last_block_index")], Utils.encodeBigEndian(mem.lastIndex));
+      ct.put([Text.encodeUtf8("last_block_index")], Utils.encodeBigEndian(mem.lastIndex));//Blob.fromArray(fromNat(mem.lastIndex,10)));//Utils.encodeBigEndian(mem.lastIndex));
       ct.put([Text.encodeUtf8("last_block_hash")], latest_hash);
       ct.setCertifiedData();
     };
