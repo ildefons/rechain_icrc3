@@ -32,6 +32,9 @@ module {
         };
 
     // follows ICRC3 backlog and sends transactions to onRead ordered. Converts generic value to action using decodeBlock
+    // Problems:
+    // - make it use ICRC3 methods
+    // - you get Generic Value Blocks, need to be converted with decodeBlock then passed to onRead
     public class Reader<A>({
         mem : Mem;
         ledger_id : Principal;
