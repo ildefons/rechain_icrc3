@@ -22,6 +22,8 @@ The provided example illustrates the use of the library to implement the ICRC3 l
 * In the ICDev/PanIndustrial implementation, if ledger exceeded its max length, it was setting a timer to run in the next round to run the archive. We instead run a recurrent timer that checks every 30 seconds whether we need to create an archive.
 * (under development) Recurrent timer (every 6 hours) that checks all archive canister cycle balances and refills them with X amount of cycles if they dropped bellow Y unless the main canister is bellow Z (X,Y,Z are settings)
 
+----> document parameter semantic
+----> example of how to create a ledger (including setting the canister princiapla... Motoko team working on how to avoid it)
 
 ## Install
 (TODO)

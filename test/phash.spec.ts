@@ -225,10 +225,15 @@ describe("phash", () => {
       const phash_hat2 = await can.compute_hash(auxm2);
       expect(true).toBe(JSON.stringify(decodedBlock2.phash) === JSON.stringify(phash_hat2[0]));
     };
+   
+  });
 
-
-
+  it("check_archives_balance", async () => {
+       
+    await can.check_archives_balance();
     
+    expect(true).toBe(true);
+   
   });
 
   

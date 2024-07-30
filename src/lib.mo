@@ -64,9 +64,9 @@ module {
   
   public let DEFAULT_SETTINGS = {
     archiveActive = true;
-    maxActiveRecords = 2000; // max size of ledger before archiving 
-    settleToRecords = 1000; //It makes sure to leave 1000 records in the ledger after archiving
-    maxRecordsInArchiveInstance = 10_000_000; //if archive full, we create a new one
+    maxActiveRecords = 20;//2000; // max size of ledger before archiving 
+    settleToRecords = 10;//1000; //It makes sure to leave 1000 records in the ledger after archiving
+    maxRecordsInArchiveInstance = 30;//10_000_000; //if archive full, we create a new one
     maxArchivePages = 62500; //Archive constructor parameter: every page is 65536 per KiB. 62500 pages is default size (4 Gbytes)
     archiveIndexType = #Stable;
     maxRecordsToArchive = 10_000; // maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
@@ -354,6 +354,22 @@ module {
       };
 
       return;
+    };
+
+    public func check_archives_balance() : async () {
+      Debug.print("inside check_archives_balance");
+      // //let archives = Map.new<Principal, (Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)>();
+      // for (archivePrincipal in Map.keys(mem.archives)) {
+      //   let archiveActor = actor (Principal.toText(archivePrincipal)) : T.ArchiveInterface;
+      //   Debug.print("Cycles: " # debug_show(archiveActor.cycles()));
+      // };
+      // for (thisItem in Map.entries(mem.archives)) {
+      //   Debug.print("Cycles: " # debug_show(thisItem));
+      // };
+      // //       if (seeking > Nat.sub(thisItem.1.start + thisItem.1.length, 1) or thisArgs.start + thisArgs.length <= thisItem.1.start) {
+      // //         continue archive;
+      // //       };"inside check_archives_balance()");
+      // // mem.archives
     };
 
     public func start_archiving<system>() : async () {

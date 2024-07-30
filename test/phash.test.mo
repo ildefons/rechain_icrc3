@@ -295,6 +295,10 @@ actor Self {
         reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];  
     });
 
+    public shared(msg) func check_archives_balance(): async () {
+        return await chain.check_archives_balance();
+    };
+
     ignore Timer.setTimer<system>(#seconds 0, func () : async () {
         await chain.start_archiving<system>();
     });
