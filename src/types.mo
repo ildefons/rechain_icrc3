@@ -156,7 +156,7 @@ module {
       /// > The capacity of the archive canister is 32GB
       remaining_capacity : shared query () -> async Nat;
 
-      
+      cycles : shared query () -> async Nat;
     };
 
     public type ICRC3Interface = actor {

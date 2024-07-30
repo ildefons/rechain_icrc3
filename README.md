@@ -24,6 +24,12 @@ The provided example illustrates the use of the library to implement the ICRC3 l
 
 ----> document parameter semantic
 ----> example of how to create a ledger (including setting the canister princiapla... Motoko team working on how to avoid it)
+----> how dispatching works
+----> what happens when errors (types of errors)
+----> explain canister upgrading
+----> explain (todo) cycling refilling (explain we only refil the main canister and the archives are auto refilled, with the recurrent timer: 6h)
+
+
 
 ## Install
 (TODO)

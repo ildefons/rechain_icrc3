@@ -289,7 +289,7 @@ actor Self {
     };
 
     var chain = rechain.Chain<T.Action, T.ActionError>({ 
-        settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 100; settleToRecords = 30; maxRecordsInArchiveInstance = 120;};
+        settings = ?{rechain.DEFAULT_SETTINGS with supportedBlocks = []; maxActiveRecords = 20; settleToRecords = 10; maxRecordsInArchiveInstance = 30;};
         mem = chain_mem;
         encodeBlock = encodeBlock;
         reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];  
@@ -300,6 +300,7 @@ actor Self {
     };
 
     ignore Timer.setTimer<system>(#seconds 0, func () : async () {
+        Debug.print("inside setTimer");
         await chain.start_archiving<system>();
     });
 

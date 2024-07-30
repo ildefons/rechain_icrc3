@@ -148,6 +148,8 @@ function decodeBlock(my_blocks:GetTransactionsResult, block_pos:number ) {
           payload_from: my_payload_from});//: Uint8Array | number[];
 };
 
+
+
 describe("phash", () => {
   let pic: PocketIc;
   let can: Actor<TestService>;
@@ -167,6 +169,7 @@ describe("phash", () => {
   const john9 = createIdentity('superSecretJohn9Password');
   const john0 = createIdentity('superSecretJohn0Password');
   
+    
   beforeAll(async () => {
     pic = await PocketIc.create(process.env.PIC_URL); //ILDE create();
 
@@ -230,6 +233,39 @@ describe("phash", () => {
 
   it("check_archives_balance", async () => {
        
+    
+    let my_mint_action: Action = {
+      ts : 0n,
+      created_at_time : [0n], //?Nat64
+      memo: [], //?Blob;
+      caller: jo.getPrincipal(),  
+      fee: [], //?Nat
+      payload : {
+          mint : {
+              amt : 50n,
+              to : [john0.getPrincipal().toUint8Array()],
+          },
+      },
+    };
+
+    let i = 0n;
+    for (; i < 120; i++) {
+      let r = await can.add_record(my_mint_action);
+      //console.log(i);
+    }
+    console.log(i);
+    // async function passTime(n:number) {
+    //   for (let i=0; i<n; i++) {
+    //       await pic.advanceTime(3*1000);
+    //       await pic.tick(2);
+    //     }
+    //   };
+    // console.log("before wait");
+    // passTime(5); //wait 5 seconds
+    // console.log("afer log");
+
+    //pic.tick(10);
+    //await pic.advanceTime(10*1000);
     await can.check_archives_balance();
     
     expect(true).toBe(true);
