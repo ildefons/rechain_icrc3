@@ -295,7 +295,7 @@ actor Self {
         reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];  
     });
 
-    public shared(msg) func check_archives_balance(): async () {
+    public shared(msg) func check_archives_balance(): async (Nat) {
         return await chain.check_archives_balance();
     };
 

@@ -54,6 +54,7 @@ module {
       archiveIndexType : SW.IndexType;
       maxRecordsToArchive : Nat;
       archiveCycles : Nat;
+      minArchiveCycles : Nat;
       archiveControllers : [Principal];
       supportedBlocks : [BlockType];
     };
@@ -157,6 +158,8 @@ module {
       remaining_capacity : shared query () -> async Nat;
 
       cycles : shared query () -> async Nat;
+
+      deposit_cycles : shared () -> async ();
     };
 
     public type ICRC3Interface = actor {

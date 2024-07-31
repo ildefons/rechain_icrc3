@@ -24,7 +24,9 @@ shared ({ caller = ledger_canister_id }) actor class archive (_args : ?T.Archive
 
   public type TransactionRange = T.TransactionRange;
   
-  stable var args = switch(_args) { case (?a) { a }; case(null) { Debug.trap("No args provided") } };
+  stable var args = switch(_args) { case (?a) { a }; case(null) { 
+    
+    Debug.trap("No args provided") } };
  
   stable var memstore = SW.init({
       maxRecords = args.maxRecords;

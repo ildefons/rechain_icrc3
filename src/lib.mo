@@ -71,6 +71,7 @@ module {
     archiveIndexType = #Stable;
     maxRecordsToArchive = 10_000; // maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
     archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister
+    minArchiveCycles = 500_000_000_000; // if archive canister is below this balance (and main ledger canister balance is > 2*archiveCycles) we add "archiveCycles"
     archiveControllers = [];
     supportedBlocks = [];
   } : T.InitArgs;
@@ -144,11 +145,12 @@ module {
     };
 
     private func new_archive<system>(initArg : T.ArchiveInitArgs) : async ?(actor {}) {
+      
       let ?this_canister = mem.canister else Debug.trap("No canister set");
 
       if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) {
         ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
-      } else {
+      } else { 
         //warning ledger will eventually overload
         Debug.print("Not enough cycles" # debug_show (ExperimentalCycles.balance()));
         archiveState.bCleaning := false;
@@ -197,7 +199,7 @@ module {
 
     private func check_clean_up<system>() : async () {
 
-      Debug.print("ccu1");
+      
       //clear the timer
       archiveState.cleaningTimer := null;
 
@@ -207,9 +209,14 @@ module {
         return; //only one cleaning at a time;
       };
 
-      if (history.len() < archiveState.settings.maxActiveRecords) return;
-
+      if (history.len() < archiveState.settings.maxActiveRecords) {
+        return;
+      };
       // let know that we are creating an archive canister so noone else try at the same time
+      
+      let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
+      //Debug.print("Size in clean_up: "#debug_show(archives.size()));
+
 
       archiveState.bCleaning := true;
 
@@ -217,13 +224,15 @@ module {
 
       let (archive_detail, available_capacity) = if (Map.size(mem.archives) == 0) {
         //no archive exists - create a new canister
-
+       
         let ?newArchive = await new_archive<system>({
           maxRecords = archiveState.settings.maxRecordsInArchiveInstance;
           indexType = archiveState.settings.archiveIndexType;
           maxPages = archiveState.settings.maxArchivePages;
           firstIndex = 0;
-        }) else return;
+        }) else {
+          return;
+        };
 
         //set archive controllers calls async
 
@@ -359,12 +368,40 @@ module {
 
     public func check_archives_balance() : async () {
       Debug.print("inside check_archives_balance");
-      // //let archives = Map.new<Principal, (Vec.Vector<T.TransactionRange>, T.GetTransactionsFn)>();
-      for (archivePrincipal in Map.keys(mem.archives)) {
-         let archiveActor = actor (Principal.toText(archivePrincipal)) : T.ArchiveInterface;
-         let ac1 : Nat = await archiveActor.cycles();
-         Debug.print("Cycles: " # debug_show(ac1));
+      Debug.print(debug_show(mem.archives));
+      Debug.print(debug_show(mem.archives.size()));
+      Debug.print("after");
+
+      let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
+      Debug.print("Size in check: "#debug_show(archives.size()));
+      for (i in archives.keys()) {
+        let (a,b) = archives[i];
+        Debug.print(debug_show(a));
+        Debug.print(debug_show(b));
+        Debug.print(debug_show(i));
+        Debug.print("yeah");
+        let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;
+        let archive_cycles : Nat = await archiveActor.cycles();
+        Debug.print("Cycles: " # debug_show(archive_cycles));
+      
+        if (archive_cycles < archiveState.settings.minArchiveCycles) {
+          if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) { 
+            ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
+            await archiveActor.deposit_cycles();
+          } else { 
+            //warning ledger will eventually overload
+            Debug.print("Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+            return;
+          };
+        };
       };
+      return;
+      // for (archivePrincipal in Map.keys(mem.archives)) {
+      //   Debug.print("iiiii");
+      //    let archiveActor = actor (Principal.toText(archivePrincipal)) : T.ArchiveInterface;
+      //    let ac1 : Nat = await archiveActor.cycles();
+      //    Debug.print("Cycles: " # debug_show(ac1));
+      // };
       // for (thisItem in Map.entries(mem.archives)) {
       //   Debug.print("Cycles: " # debug_show(thisItem));
       // };
@@ -375,7 +412,7 @@ module {
     };
 
     public func start_archiving<system>() : async () {
-        Debug.print("inside start_archiving,"#debug_show(history.len())#""#debug_show(archiveState.settings.maxActiveRecords));
+        //Debug.print("inside start_archiving,"#debug_show(history.len())#""#debug_show(archiveState.settings.maxActiveRecords));
         if (history.len() > archiveState.settings.maxActiveRecords) {
           if (Option.isNull(archiveState.cleaningTimer)) {
               archiveState.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);

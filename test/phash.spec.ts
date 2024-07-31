@@ -178,6 +178,7 @@ describe("phash", () => {
     can = fixture.actor;
     canCanisterId = fixture.canisterId; //ILDE: I need the id given by
     
+    await can.set_ledger_canister();
     //await can.set_ledger_canister();
   });
 
@@ -249,29 +250,52 @@ describe("phash", () => {
     };
 
     let i = 0n;
-    for (; i < 120; i++) {
+    for (; i < 35; i++) {
       let r = await can.add_record(my_mint_action);
       //console.log(i);
     }
     console.log(i);
-    // async function passTime(n:number) {
-    //   for (let i=0; i<n; i++) {
-    //       await pic.advanceTime(3*1000);
-    //       await pic.tick(2);
-    //     }
-    //   };
-    // console.log("before wait");
-    // passTime(5); //wait 5 seconds
-    // console.log("afer log");
 
-    //pic.tick(10);
-    //await pic.advanceTime(10*1000);
+    await passTime(200);
+
+    i = 0n;
+    for (; i < 35; i++) {
+      let r = await can.add_record(my_mint_action);
+      //console.log(i);
+    }
+    console.log(i);
+
+    await passTime(200);
+    
     await can.check_archives_balance();
     
+    await passTime(200);
+
+    i = 0n;
+    for (; i < 35; i++) {
+      let r = await can.add_record(my_mint_action);
+      //console.log(i);
+    }
+    console.log(i);
+    
+    await passTime(200);
+    
+    const ret = await can.check_archives_balance();
+    
+    console.log(ret);
+
+    await passTime(200);
+
     expect(true).toBe(true);
    
   });
 
+  async function passTime(n: number) {
+    for (let i = 0; i < n; i++) {
+      await pic.advanceTime(3 * 1000);
+      await pic.tick(2);
+    }
+  }
   
 });
 
