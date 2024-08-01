@@ -73,6 +73,7 @@ module {
     maxRecordsToArchive = 10_000; // maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
     archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister
     minArchiveCycles = 500_000_000_000; // if archive canister is below this balance (and main ledger canister balance is > 2*archiveCycles) we add "archiveCycles"
+    secsCycleMaintenance = 518400; //6*24*60*60; // every 6 hours we check archive canisters have enough cycles
     archiveControllers = [];
     supportedBlocks = [];
   } : T.InitArgs;
@@ -363,16 +364,29 @@ module {
       return;
     };
 
-    //await chain.start_archiveCycleMaintenance<system>(); 
     public func start_archiveCycleMaintenance<system>() : async () {
-        //Debug.print("inside start_archiving,"#debug_show(history.len())#""#debug_show(archiveState.settings.maxActiveRecords));
-        // if (history.len() > archiveState.settings.maxActiveRecords) {
-        //   if (Option.isNull(archiveState.cleaningTimer)) {
-        //       archiveState.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
-        //   }
-        // };
+      let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
+     
+      for (i in archives.keys()) {
+        let (a,_) = archives[i];
 
-        ignore Timer.setTimer<system>(#seconds(30), start_archiveCycleMaintenance);
+        let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;
+        let archive_cycles : Nat = await archiveActor.cycles();
+        Debug.print("Cycles b: " # debug_show(archive_cycles));      
+        if (archive_cycles < archiveState.settings.minArchiveCycles) {
+          if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) { 
+            Debug.print("replenish cycles");
+            ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
+            await archiveActor.deposit_cycles();
+          } else { 
+            //warning ledger will eventually overload
+            Debug.print("Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+          };
+        };
+        let archive_cyclesa : Nat = await archiveActor.cycles();
+        Debug.print("Cycles a: " # debug_show(archive_cyclesa));
+      };
+      ignore Timer.setTimer<system>(#seconds(archiveState.settings.secsCycleMaintenance), start_archiveCycleMaintenance);
     };
 
     public func check_archives_balance() : async () {
@@ -385,15 +399,11 @@ module {
       // Debug.print("Size in check: "#debug_show(archives.size()));
       for (i in archives.keys()) {
         let (a,b) = archives[i];
-        // Debug.print(debug_show(a));
-        // Debug.print(debug_show(b));
-        // Debug.print(debug_show(i));
-        // Debug.print("yeah");
+
         let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;
         let archive_cycles : Nat = await archiveActor.cycles();
-        Debug.print("Cycles b: " # debug_show(archive_cycles));
-      
-        if (archive_cycles < 5000000000000){//1_897_677_175_575){//1archiveState.settings.minArchiveCycles) {
+        Debug.print("Cycles b: " # debug_show(archive_cycles));      
+        if (archive_cycles < archiveState.settings.minArchiveCycles) {
           if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) { 
             Debug.print("replenish cycles");
             ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
@@ -408,19 +418,7 @@ module {
         Debug.print("Cycles a: " # debug_show(archive_cyclesa));
       };
       return;
-      // for (archivePrincipal in Map.keys(mem.archives)) {
-      //   Debug.print("iiiii");
-      //    let archiveActor = actor (Principal.toText(archivePrincipal)) : T.ArchiveInterface;
-      //    let ac1 : Nat = await archiveActor.cycles();
-      //    Debug.print("Cycles: " # debug_show(ac1));
-      // };
-      // for (thisItem in Map.entries(mem.archives)) {
-      //   Debug.print("Cycles: " # debug_show(thisItem));
-      // };
-      // //       if (seeking > Nat.sub(thisItem.1.start + thisItem.1.length, 1) or thisArgs.start + thisArgs.length <= thisItem.1.start) {
-      // //         continue archive;
-      // //       };"inside check_archives_balance()");
-      // // mem.archives
+
     };
 
     public func start_archiving<system>() : async () {

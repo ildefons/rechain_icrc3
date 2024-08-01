@@ -54,6 +54,7 @@ module {
       maxRecordsToArchive : Nat;
       archiveCycles : Nat;
       minArchiveCycles : Nat;
+      secsCycleMaintenance : Nat;
       archiveControllers : [Principal];
       supportedBlocks : [BlockType];
     };

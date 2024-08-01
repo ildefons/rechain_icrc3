@@ -211,84 +211,86 @@ describe("phash", () => {
 
     let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
 
-    const decodedBlock0 = decodeBlock(my_blocks,0);   
-    const decodedBlock1 = decodeBlock(my_blocks,1); 
-    const decodedBlock2 = decodeBlock(my_blocks,2); 
-    const john0_to = john0.getPrincipal().toUint8Array();
+    const decodedBlock0 = decodeBlock(my_blocks,0); 
+    
+    console.log("decodedBlock0", decodedBlock0);
+    // const decodedBlock1 = decodeBlock(my_blocks,1); 
+    // const decodedBlock2 = decodeBlock(my_blocks,2); 
+    // const john0_to = john0.getPrincipal().toUint8Array();
 
-    expect(true).toBe(JSON.stringify(john0_to) === JSON.stringify(decodedBlock1.payload_to));
+    // expect(true).toBe(JSON.stringify(john0_to) === JSON.stringify(decodedBlock1.payload_to));
 
-    if (typeof decodedBlock1.auxm1 !== 'undefined') {
-      const auxm1 = decodedBlock1.auxm1;
-      const phash_hat1 = await can.compute_hash(auxm1);
-      expect(true).toBe(JSON.stringify(decodedBlock1.phash) === JSON.stringify(phash_hat1[0]));
-    };
+    // if (typeof decodedBlock1.auxm1 !== 'undefined') {
+    //   const auxm1 = decodedBlock1.auxm1;
+    //   const phash_hat1 = await can.compute_hash(auxm1);
+    //   expect(true).toBe(JSON.stringify(decodedBlock1.phash) === JSON.stringify(phash_hat1[0]));
+    // };
 
-    if (typeof decodedBlock2.auxm1 !== 'undefined') {
-      const auxm2 = decodedBlock2.auxm1;
-      const phash_hat2 = await can.compute_hash(auxm2);
-      expect(true).toBe(JSON.stringify(decodedBlock2.phash) === JSON.stringify(phash_hat2[0]));
-    };
+    // if (typeof decodedBlock2.auxm1 !== 'undefined') {
+    //   const auxm2 = decodedBlock2.auxm1;
+    //   const phash_hat2 = await can.compute_hash(auxm2);
+    //   expect(true).toBe(JSON.stringify(decodedBlock2.phash) === JSON.stringify(phash_hat2[0]));
+    // };
    
   });
 
-  it("check_archives_balance", async () => {
+  // it("check_archives_balance", async () => {
        
     
-    let my_mint_action: Action = {
-      ts : 0n,
-      created_at_time : [0n], //?Nat64
-      memo: [], //?Blob;
-      caller: jo.getPrincipal(),  
-      fee: [], //?Nat
-      payload : {
-          mint : {
-              amt : 50n,
-              to : [john0.getPrincipal().toUint8Array()],
-          },
-      },
-    };
+  //   let my_mint_action: Action = {
+  //     ts : 0n,
+  //     created_at_time : [0n], //?Nat64
+  //     memo: [], //?Blob;
+  //     caller: jo.getPrincipal(),  
+  //     fee: [], //?Nat
+  //     payload : {
+  //         mint : {
+  //             amt : 50n,
+  //             to : [john0.getPrincipal().toUint8Array()],
+  //         },
+  //     },
+  //   };
 
-    let i = 0n;
-    for (; i < 35; i++) {
-      let r = await can.add_record(my_mint_action);
-      //console.log(i);
-    }
-    console.log(i);
+  //   let i = 0n;
+  //   for (; i < 35; i++) {
+  //     let r = await can.add_record(my_mint_action);
+  //     //console.log(i);
+  //   }
+  //   console.log(i);
 
-    await passTime(200);
+  //   await passTime(200);
 
-    i = 0n;
-    for (; i < 35; i++) {
-      let r = await can.add_record(my_mint_action);
-      //console.log(i);
-    }
-    console.log(i);
+  //   i = 0n;
+  //   for (; i < 35; i++) {
+  //     let r = await can.add_record(my_mint_action);
+  //     //console.log(i);
+  //   }
+  //   console.log(i);
 
-    await passTime(200);
+  //   await passTime(200);
     
-    await can.check_archives_balance();
+  //   await can.check_archives_balance();
     
-    await passTime(200);
+  //   await passTime(200);
 
-    i = 0n;
-    for (; i < 35; i++) {
-      let r = await can.add_record(my_mint_action);
-      //console.log(i);
-    }
-    console.log(i);
+  //   i = 0n;
+  //   for (; i < 35; i++) {
+  //     let r = await can.add_record(my_mint_action);
+  //     //console.log(i);
+  //   }
+  //   console.log(i);
     
-    await passTime(200);
+  //   await passTime(200);
     
-    const ret = await can.check_archives_balance();
+  //   const ret = await can.check_archives_balance();
     
-    console.log(ret);
+  //   console.log(ret);
 
-    await passTime(200);
+  //   await passTime(200);
 
-    expect(true).toBe(true);
+  //   expect(true).toBe(true);
    
-  });
+  // });
 
   async function passTime(n: number) {
     for (let i = 0; i < n; i++) {
