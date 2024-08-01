@@ -33,26 +33,28 @@ actor class Delta({archive_controllers: [Principal]}) = this {
     func encodeBlock(b: Action): [rechain.ValueMap] {
         [
             ("ts", #Nat(Nat64.toNat(b.ts))),
-            ("created_at_time", #Nat(Nat64.toNat(b.created_at_time))),
-            ("memo", #Blob(b.memo)),
-            ("caller", #Blob(Principal.toBlob(b.caller))),
-            ("fee", #Nat(b.fee)),
             ("btype", #Text(switch (b.payload) {
-                case (#swap(_)) "1swap";
-                case (#add(_)) "1add";
-            })),
-            ("payload", #Map(switch (b.payload) {
-                case (#swap(data)) {
-                    [
-                        ("amt", #Nat(data.amt))
-                    ]
-                };
-                case (#add(data)) {
-                    [
-                        ("amt", #Nat(data.amt))
-                    ]
-                };
-            }))
+                    case (#swap(_)) "1swap";
+                    case (#add(_)) "1add";
+                })),
+            ("tx", #Map([
+                ("created_at_time", #Nat(Nat64.toNat(b.created_at_time))),
+                ("memo", #Blob(b.memo)),
+                ("caller", #Blob(Principal.toBlob(b.caller))),
+                ("fee", #Nat(b.fee)),
+                ("payload", #Map(switch (b.payload) {
+                    case (#swap(data)) {
+                        [
+                            ("amt", #Nat(data.amt))
+                        ]
+                    };
+                    case (#add(data)) {
+                        [
+                            ("amt", #Nat(data.amt))
+                        ]
+                    };
+                }))
+            ]))
         ];
     };
 
