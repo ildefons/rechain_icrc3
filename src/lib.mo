@@ -366,26 +366,39 @@ module {
       return;
     };
 
+    //await chain.start_archiveCycleMaintenance<system>(); 
+    public func start_archiveCycleMaintenance<system>() : async () {
+        //Debug.print("inside start_archiving,"#debug_show(history.len())#""#debug_show(archiveState.settings.maxActiveRecords));
+        // if (history.len() > archiveState.settings.maxActiveRecords) {
+        //   if (Option.isNull(archiveState.cleaningTimer)) {
+        //       archiveState.cleaningTimer := ?Timer.setTimer<system>(#seconds(0), check_clean_up);
+        //   }
+        // };
+
+        ignore Timer.setTimer<system>(#seconds(30), start_archiveCycleMaintenance);
+    };
+
     public func check_archives_balance() : async () {
-      Debug.print("inside check_archives_balance");
-      Debug.print(debug_show(mem.archives));
-      Debug.print(debug_show(mem.archives.size()));
-      Debug.print("after");
+      // Debug.print("inside check_archives_balance");
+      // Debug.print(debug_show(mem.archives));
+      // Debug.print(debug_show(mem.archives.size()));
+      // Debug.print("after");
 
       let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
-      Debug.print("Size in check: "#debug_show(archives.size()));
+      // Debug.print("Size in check: "#debug_show(archives.size()));
       for (i in archives.keys()) {
         let (a,b) = archives[i];
-        Debug.print(debug_show(a));
-        Debug.print(debug_show(b));
-        Debug.print(debug_show(i));
-        Debug.print("yeah");
+        // Debug.print(debug_show(a));
+        // Debug.print(debug_show(b));
+        // Debug.print(debug_show(i));
+        // Debug.print("yeah");
         let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;
         let archive_cycles : Nat = await archiveActor.cycles();
-        Debug.print("Cycles: " # debug_show(archive_cycles));
+        Debug.print("Cycles b: " # debug_show(archive_cycles));
       
-        if (archive_cycles < archiveState.settings.minArchiveCycles) {
+        if (archive_cycles < 5000000000000){//1_897_677_175_575){//1archiveState.settings.minArchiveCycles) {
           if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) { 
+            Debug.print("replenish cycles");
             ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
             await archiveActor.deposit_cycles();
           } else { 
@@ -394,6 +407,8 @@ module {
             return;
           };
         };
+        let archive_cyclesa : Nat = await archiveActor.cycles();
+        Debug.print("Cycles a: " # debug_show(archive_cyclesa));
       };
       return;
       // for (archivePrincipal in Map.keys(mem.archives)) {

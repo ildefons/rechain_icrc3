@@ -295,13 +295,14 @@ actor Self {
         reducers = [balances.reducer];//, dedup.reducer];//, balancesIlde.reducer];  
     });
 
-    public shared(msg) func check_archives_balance(): async (Nat) {
+    public shared(msg) func check_archives_balance(): async () {
         return await chain.check_archives_balance();
     };
 
     ignore Timer.setTimer<system>(#seconds 0, func () : async () {
         Debug.print("inside setTimer");
         await chain.start_archiving<system>();
+        //await chain.start_archiveCycleMaintenance<system>(); 
     });
 
     public shared(msg) func set_ledger_canister(): async () {
