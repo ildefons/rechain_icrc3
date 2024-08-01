@@ -3,14 +3,14 @@ import SW "mo:stable-write-only"; // ILDE: I have to add mops.toml
 
 module {
    
-
+    public type ValueMap = (Text, Value);
     public type Value = { 
         #Blob : Blob; 
         #Text : Text; 
         #Nat : Nat;
         #Int : Int;
         #Array : [Value]; 
-        #Map : [(Text, Value)]; 
+        #Map : [ValueMap]; 
     };
 
     //ILDEbegin
@@ -46,7 +46,6 @@ module {
     };
 
     public type InitArgs = {
-      archiveActive : Bool;
       maxActiveRecords : Nat;
       settleToRecords : Nat;
       maxRecordsInArchiveInstance : Nat;
