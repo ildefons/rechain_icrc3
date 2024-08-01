@@ -1,10 +1,5 @@
 {
-  "canisters": {
-    "deployer": {
-      "main": "src/ledger.mo",
-      "type": "motoko"
-    }
-  },
+  "canisters": {},
 
   "defaults": {
     "build": {

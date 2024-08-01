@@ -52,6 +52,7 @@ module {
   public type GetArchivesResult = T.GetArchivesResult;
   public type ActionReducer<A, B> = (A) -> ReducerResponse<B>;
   public type BlockId = Nat;
+  public type Stats = T.Stats;
   public type ReducerResponse<E> = {
     #Ok : (BlockId) -> ();
     #Pass;
