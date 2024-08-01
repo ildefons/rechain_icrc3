@@ -30,8 +30,8 @@ actor class Delta({archive_controllers: [Principal]}) = this {
 
     stable let chain_mem  = rechain.Mem();
 
-    func encodeBlock(b: Action): rechain.Value {
-        #Map([
+    func encodeBlock(b: Action): [rechain.ValueMap] {
+        [
             ("ts", #Nat(Nat64.toNat(b.ts))),
             ("created_at_time", #Nat(Nat64.toNat(b.created_at_time))),
             ("memo", #Blob(b.memo)),
@@ -53,7 +53,7 @@ actor class Delta({archive_controllers: [Principal]}) = this {
                     ]
                 };
             }))
-        ]);
+        ];
     };
 
     var chain = rechain.Chain<Action, ActionError>({
