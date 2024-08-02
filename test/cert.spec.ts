@@ -16,7 +16,6 @@ import {
   GetBlocksArgs,
   TransactionRange,
   GetTransactionsResult,
-  Value__1,
 } from "./build/cert.idl.js";
 import { HttpAgent, compare, lookup_path } from '@dfinity/agent';
 import { verifyCertification } from '@dfinity/certificate-verification';
