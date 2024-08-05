@@ -20,6 +20,7 @@ import MTree "mo:ic-certification/MerkleTree";
 import Option "mo:base/Option";
 import Utils "./utils";
 import Nat8 "mo:base/Nat8";
+import sysLog "./sysLog";
 
 module {
 
@@ -31,6 +32,13 @@ module {
     var canister : ?Principal;
     archives : Map.Map<Principal, T.TransactionRange>;
     cert_store : CertTree.Store;
+    _eventlog : sysLog.ErrLog;
+    //logMem : SWB.StableData<Text>;
+  };
+
+  public func memEventLog() : {mem: SWB.SlidingWindowBuffer<Text>} {
+    {mem = SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())};
+
   };
 
   public func Mem() : Mem {
@@ -42,6 +50,7 @@ module {
       var canister = null;
       archives = Map.new<Principal, T.TransactionRange>();
       cert_store = CertTree.newStore(); //Certificate tree storage
+      _eventlog = sysLog.ErrLog(memEventLog());
     };
   };
 
@@ -73,7 +82,7 @@ module {
     maxRecordsToArchive = 10_000; // maximum number of blocks archived every archiving cycle. if bigger, a new time is started and the archiving function is called again
     archiveCycles = 2_000_000_000_000; //two trillion: cycle requirement to create an archive canister
     minArchiveCycles = 500_000_000_000; // if archive canister is below this balance (and main ledger canister balance is > 2*archiveCycles) we add "archiveCycles"
-    secsCycleMaintenance = 518400; //6*24*60*60; // every 6 hours we check archive canisters have enough cycles
+    secsCycleMaintenance = 2160; //6*60*60; // every 6 hours we check archive canisters have enough cycles
     archiveControllers = [];
     supportedBlocks = [];
   } : T.InitArgs;
@@ -369,31 +378,35 @@ module {
      
       for (i in archives.keys()) {
         let (a,_) = archives[i];
-
-        let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;
-        let archive_cycles : Nat = await archiveActor.cycles();
-        Debug.print("Cycles b: " # debug_show(archive_cycles));      
-        if (archive_cycles < archiveState.settings.minArchiveCycles) {
-          if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) { 
-            Debug.print("replenish cycles");
-            ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
-            await archiveActor.deposit_cycles();
-          } else { 
-            //warning ledger will eventually overload
-            Debug.print("Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+        try {
+          let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;        
+          let archive_cycles : Nat = await archiveActor.cycles();
+              
+          if (archive_cycles < archiveState.settings.minArchiveCycles) {
+            if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) { 
+              
+              let refill_amount = archiveState.settings.archiveCycles;
+              try{
+                ExperimentalCycles.add<system>(refill_amount);
+                await archiveActor.deposit_cycles();
+              } catch (err) {
+                mem._eventlog.add("Err : Failed to refill " # Principal.toText(a) # " width " # debug_show(refill_amount) # " : " # Error.message(err));
+              };
+            } else { 
+              //warning ledger will eventually overload
+              Debug.print("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+            };
           };
+          let archive_cyclesa : Nat = await archiveActor.cycles();
+        }
+        catch(err) {
+          mem._eventlog.add("Err : Failed to get canister " # Principal.toText(a) # " : " # Error.message(err));
         };
-        let archive_cyclesa : Nat = await archiveActor.cycles();
-        Debug.print("Cycles a: " # debug_show(archive_cyclesa));
       };
       ignore Timer.setTimer<system>(#seconds(archiveState.settings.secsCycleMaintenance), start_archiveCycleMaintenance);
     };
 
     public func check_archives_balance() : async () {
-      // Debug.print("inside check_archives_balance");
-      // Debug.print(debug_show(mem.archives));
-      // Debug.print(debug_show(mem.archives.size()));
-      // Debug.print("after");
 
       let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
       // Debug.print("Size in check: "#debug_show(archives.size()));
@@ -402,23 +415,22 @@ module {
 
         let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;
         let archive_cycles : Nat = await archiveActor.cycles();
-        Debug.print("Cycles b: " # debug_show(archive_cycles));      
+        //Debug.print("Cycles b: " # debug_show(archive_cycles));      
         if (archive_cycles < archiveState.settings.minArchiveCycles) {
           if (ExperimentalCycles.balance() > archiveState.settings.archiveCycles * 2) { 
-            Debug.print("replenish cycles");
+            //Debug.print("replenish cycles");
             ExperimentalCycles.add<system>(archiveState.settings.archiveCycles);
             await archiveActor.deposit_cycles();
           } else { 
             //warning ledger will eventually overload
-            Debug.print("Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+            mem._eventlog.add("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
             return;
           };
         };
         let archive_cyclesa : Nat = await archiveActor.cycles();
-        Debug.print("Cycles a: " # debug_show(archive_cyclesa));
+        //Debug.print("Cycles a: " # debug_show(archive_cyclesa));
       };
       return;
-
     };
 
     public func start_archiving<system>() : async () {
