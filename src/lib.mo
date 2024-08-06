@@ -20,7 +20,7 @@ import MTree "mo:ic-certification/MerkleTree";
 import Option "mo:base/Option";
 import Utils "./utils";
 import Nat8 "mo:base/Nat8";
-import sysLog "./sysLog";
+import SysLog "./SysLog";
 
 module {
 
@@ -32,14 +32,14 @@ module {
     var canister : ?Principal;
     archives : Map.Map<Principal, T.TransactionRange>;
     cert_store : CertTree.Store;
-    _eventlog : sysLog.ErrLog;
+    syslog : SysLog.ErrLog;
     //logMem : SWB.StableData<Text>;
   };
 
-  public func memEventLog() : {mem: SWB.SlidingWindowBuffer<Text>} {
-    {mem = SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())};
+  // public func memEventLog() : {mem: SWB.SlidingWindowBuffer<Text>} {
+  //   {mem = SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())};
 
-  };
+  // };
 
   public func Mem() : Mem {
     {
@@ -50,7 +50,7 @@ module {
       var canister = null;
       archives = Map.new<Principal, T.TransactionRange>();
       cert_store = CertTree.newStore(); //Certificate tree storage
-      _eventlog = sysLog.ErrLog(memEventLog());
+      syslog = SysLog.ErrLog({_eventlog_mem=SWB.SlidingWindowBufferNewMem<Text>()});//memEventLog());
     };
   };
 
@@ -390,7 +390,7 @@ module {
                 ExperimentalCycles.add<system>(refill_amount);
                 await archiveActor.deposit_cycles();
               } catch (err) {
-                mem._eventlog.add("Err : Failed to refill " # Principal.toText(a) # " width " # debug_show(refill_amount) # " : " # Error.message(err));
+                mem.syslog.add("Err : Failed to refill " # Principal.toText(a) # " width " # debug_show(refill_amount) # " : " # Error.message(err));
               };
             } else { 
               //warning ledger will eventually overload
@@ -400,7 +400,7 @@ module {
           let archive_cyclesa : Nat = await archiveActor.cycles();
         }
         catch(err) {
-          mem._eventlog.add("Err : Failed to get canister " # Principal.toText(a) # " : " # Error.message(err));
+          mem.syslog.add("Err : Failed to get canister " # Principal.toText(a) # " : " # Error.message(err));
         };
       };
       ignore Timer.setTimer<system>(#seconds(archiveState.settings.secsCycleMaintenance), start_archiveCycleMaintenance);
@@ -411,7 +411,7 @@ module {
       let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
       // Debug.print("Size in check: "#debug_show(archives.size()));
       for (i in archives.keys()) {
-        let (a,b) = archives[i];
+        let (a,_) = archives[i];
 
         let archiveActor = actor (Principal.toText(a)) : T.ArchiveInterface;
         let archive_cycles : Nat = await archiveActor.cycles();
@@ -423,11 +423,11 @@ module {
             await archiveActor.deposit_cycles();
           } else { 
             //warning ledger will eventually overload
-            mem._eventlog.add("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+            mem.syslog.add("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
             return;
           };
         };
-        let archive_cyclesa : Nat = await archiveActor.cycles();
+        //let archive_cyclesa : Nat = await archiveActor.cycles();
         //Debug.print("Cycles a: " # debug_show(archive_cyclesa));
       };
       return;
