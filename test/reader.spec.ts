@@ -7,7 +7,7 @@ import {
   _SERVICE as TestService,
   idlFactory as TestIdlFactory,
   init,
-} from "./build/reader.idl.js";
+} from "./build/reader_reader.idl.js";
 
 import {
   Action,
@@ -16,18 +16,19 @@ import {
   TransactionRange,
   GetTransactionsResult,
   Value__1,
-} from "./build/reader.idl.js";
+} from "./build/reader_ledger.idl.js";
 
 //@ts-ignore
 import { toState } from "@infu/icblast";
 // Jest can't handle multi threaded BigInts o.O That's why we use toState
 
-const WASM_PATH = resolve(__dirname, "./build/reader.wasm");
+const READER_READER_WASM_PATH = resolve(__dirname, "./build/reader_reader.wasm");
+cosnt READER_LEDGER_WASM_PATH = resolve(__dirname, "./build/reader_ledger.wasm");
 
 export async function TestCan(pic: PocketIc, ledgerCanisterId: Principal) {
   const fixture = await pic.setupCanister<TestService>({
     idlFactory: TestIdlFactory,
-    wasm: WASM_PATH,
+    wasm: READER_READER_WASM_PATH,
     arg: IDL.encode(init({ IDL }), []), 
   });
 

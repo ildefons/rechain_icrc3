@@ -33,11 +33,12 @@ module {
     archives : Map.Map<Principal, T.TransactionRange>;
     cert_store : CertTree.Store;
     syslog : SysLog.ErrLog;
+    //syslog : SWB.StableData<Text>;
     //logMem : SWB.StableData<Text>;
   };
 
-  // public func memEventLog() : {mem: SWB.SlidingWindowBuffer<Text>} {
-  //   {mem = SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())};
+  // public func memEventLog() : {_eventlog_mem: SWB.StableData<Text>}{//SWB.SlidingWindowBuffer<Text>} {
+  //   {_eventlog_mem = SWB.SlidingWindowBufferNewMem<Text>()};
 
   // };
 
@@ -50,7 +51,10 @@ module {
       var canister = null;
       archives = Map.new<Principal, T.TransactionRange>();
       cert_store = CertTree.newStore(); //Certificate tree storage
-      syslog = SysLog.ErrLog({_eventlog_mem=SWB.SlidingWindowBufferNewMem<Text>()});//memEventLog());
+
+      //syslog = SysLog.ErrLog(memEventLog());
+      syslog = SysLog.ErrLog({_eventlog_mem=SWB.SlidingWindowBufferNewMem<Text>()});//SWB.SlidingWindowBufferNewMem<Text>()});//memEventLog());
+      //syslog = SWB.SlidingWindowBufferNewMem<Text>();
     };
   };
 
@@ -390,7 +394,7 @@ module {
                 ExperimentalCycles.add<system>(refill_amount);
                 await archiveActor.deposit_cycles();
               } catch (err) {
-                mem.syslog.add("Err : Failed to refill " # Principal.toText(a) # " width " # debug_show(refill_amount) # " : " # Error.message(err));
+                //mem.syslog.add("Err : Failed to refill " # Principal.toText(a) # " width " # debug_show(refill_amount) # " : " # Error.message(err));
               };
             } else { 
               //warning ledger will eventually overload
@@ -400,7 +404,7 @@ module {
           let archive_cyclesa : Nat = await archiveActor.cycles();
         }
         catch(err) {
-          mem.syslog.add("Err : Failed to get canister " # Principal.toText(a) # " : " # Error.message(err));
+          //mem.syslog.add("Err : Failed to get canister " # Principal.toText(a) # " : " # Error.message(err));
         };
       };
       ignore Timer.setTimer<system>(#seconds(archiveState.settings.secsCycleMaintenance), start_archiveCycleMaintenance);
@@ -423,7 +427,7 @@ module {
             await archiveActor.deposit_cycles();
           } else { 
             //warning ledger will eventually overload
-            mem.syslog.add("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+            //mem.syslog.add("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
             return;
           };
         };

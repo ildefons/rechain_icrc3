@@ -24,6 +24,9 @@ import ExperimentalCycles "mo:base/ExperimentalCycles";
 import Iter "mo:base/Iter";
 import Text "mo:base/Text";
 
+import SysLog "../src/SysLog";
+//import SWB "mo:swbstable/Stable";
+
 actor Self {
 
     // -- Ledger configuration
@@ -53,6 +56,8 @@ actor Self {
     });
 
     // -- Chain
+
+    //stable let syslog = SysLog.ErrLog({_eventlog_mem=SWB.SlidingWindowBufferNewMem<Text>()});
 
     stable let chain_mem = rechain.Mem();
 
