@@ -8,11 +8,11 @@ import Int "mo:base/Int";
 module {
 
     public class ErrLog({
-        _eventlog_mem : SWB.StableData<Text>
+        _eventlog_mem : SWB.StableData<Text>;
     }) { 
 
-        //let _eventlog_cls : SWB.SlidingWindowBuffer<Text> = SWB.SlidingWindowBuffer<Text>(_eventlog_mem);
         let _eventlog_cls = SWB.SlidingWindowBuffer<Text>(_eventlog_mem);
+        //let _eventlog_cls = SWB.SlidingWindowBuffer<Text>(_eventlog_mem);
 
         public func add(e: Text) {
      

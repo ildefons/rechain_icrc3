@@ -32,16 +32,21 @@ module {
     var canister : ?Principal;
     archives : Map.Map<Principal, T.TransactionRange>;
     cert_store : CertTree.Store;
-    syslog : SysLog.ErrLog;
+    
+    eventlog_mem : SWB.StableData<Text>;
+    //syslog : SysLog.ErrLog;
     //syslog : SWB.StableData<Text>;
     //logMem : SWB.StableData<Text>;
   };
 
-  // public func memEventLog() : {_eventlog_mem: SWB.StableData<Text>}{//SWB.SlidingWindowBuffer<Text>} {
-  //   {_eventlog_mem = SWB.SlidingWindowBufferNewMem<Text>()};
+  public func memEventLog() : {_eventlog_mem: SWB.SlidingWindowBuffer<Text>} {
+    {_eventlog_mem = SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())};
 
-  // };
+  };
+  public func memEventLog2() : {_eventlog_mem: SWB.StableData<Text>} {
+    {_eventlog_mem = SWB.SlidingWindowBufferNewMem<Text>()};
 
+  };
   public func Mem() : Mem {
     {
       history = SWB.SlidingWindowBufferNewMem<T.Value>();
@@ -52,8 +57,11 @@ module {
       archives = Map.new<Principal, T.TransactionRange>();
       cert_store = CertTree.newStore(); //Certificate tree storage
 
+      eventlog_mem = SWB.SlidingWindowBufferNewMem<Text>();//SWB.SlidingWindowBufferNewMem<Text>();
       //syslog = SysLog.ErrLog(memEventLog());
-      syslog = SysLog.ErrLog({_eventlog_mem=SWB.SlidingWindowBufferNewMem<Text>()});//SWB.SlidingWindowBufferNewMem<Text>()});//memEventLog());
+      //syslog = SysLog.ErrLog({_eventlog_mem=SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())});//memEventLog());
+      
+      //syslog = SysLog.ErrLog(memEventLog());
       //syslog = SWB.SlidingWindowBufferNewMem<Text>();
     };
   };
@@ -378,6 +386,7 @@ module {
     };
 
     public func start_archiveCycleMaintenance<system>() : async () {
+      let syslog = SysLog.ErrLog({_eventlog_mem=mem.eventlog_mem});
       let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
      
       for (i in archives.keys()) {
@@ -394,17 +403,16 @@ module {
                 ExperimentalCycles.add<system>(refill_amount);
                 await archiveActor.deposit_cycles();
               } catch (err) {
-                //mem.syslog.add("Err : Failed to refill " # Principal.toText(a) # " width " # debug_show(refill_amount) # " : " # Error.message(err));
+                syslog.add("Err : Failed to refill " # Principal.toText(a) # " width " # debug_show(refill_amount) # " : " # Error.message(err));
               };
             } else { 
               //warning ledger will eventually overload
               Debug.print("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
             };
           };
-          let archive_cyclesa : Nat = await archiveActor.cycles();
         }
         catch(err) {
-          //mem.syslog.add("Err : Failed to get canister " # Principal.toText(a) # " : " # Error.message(err));
+          syslog.add("Err : Failed to get canister " # Principal.toText(a) # " : " # Error.message(err));
         };
       };
       ignore Timer.setTimer<system>(#seconds(archiveState.settings.secsCycleMaintenance), start_archiveCycleMaintenance);
@@ -412,6 +420,8 @@ module {
 
     public func check_archives_balance() : async () {
 
+      let syslog = SysLog.ErrLog({_eventlog_mem=mem.eventlog_mem});
+      
       let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
       // Debug.print("Size in check: "#debug_show(archives.size()));
       for (i in archives.keys()) {
@@ -427,7 +437,7 @@ module {
             await archiveActor.deposit_cycles();
           } else { 
             //warning ledger will eventually overload
-            //mem.syslog.add("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
+            syslog.add("Err : Not enough cycles to replenish archive canisters " # debug_show (ExperimentalCycles.balance()));
             return;
           };
         };
