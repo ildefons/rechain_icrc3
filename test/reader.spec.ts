@@ -23,9 +23,9 @@ import { toState } from "@infu/icblast";
 // Jest can't handle multi threaded BigInts o.O That's why we use toState
 
 const READER_READER_WASM_PATH = resolve(__dirname, "./build/reader_reader.wasm");
-cosnt READER_LEDGER_WASM_PATH = resolve(__dirname, "./build/reader_ledger.wasm");
+const READER_LEDGER_WASM_PATH = resolve(__dirname, "./build/reader_ledger.wasm");
 
-export async function TestCan(pic: PocketIc, ledgerCanisterId: Principal) {
+export async function TestReader(pic: PocketIc, ledgerCanisterId: Principal) {
   const fixture = await pic.setupCanister<TestService>({
     idlFactory: TestIdlFactory,
     wasm: READER_READER_WASM_PATH,
@@ -35,6 +35,15 @@ export async function TestCan(pic: PocketIc, ledgerCanisterId: Principal) {
   return fixture;
 }
 
+export async function TestLedger(pic: PocketIc, ledgerCanisterId: Principal) {
+  const fixture = await pic.setupCanister<TestService>({
+    idlFactory: TestIdlFactory,
+    wasm: READER_LEDGER_WASM_PATH,
+    arg: IDL.encode(init({ IDL }), []), 
+  });
+
+  return fixture;
+}
 
 function decodeBlock2(my_blocks:GetTransactionsResult, block_pos:number ) {
   // console.log(my_blocks.blocks[0]);
@@ -175,8 +184,8 @@ function decodeBlock2(my_blocks:GetTransactionsResult, block_pos:number ) {
 
 describe("reader", () => {
   let pic: PocketIc;
-  let can: Actor<TestService>;
-  let canCanisterId: Principal;
+  let can_ledger: Actor<TestService>;
+  let canCanisterId_ledger: Principal;
 
   const jo = createIdentity('superSecretAlicePassword');
   const bob = createIdentity('superSecretBobPassword');
@@ -197,11 +206,11 @@ describe("reader", () => {
     pic = await PocketIc.create(process.env.PIC_URL); 
 
 
-    const fixture = await TestCan(pic, Principal.fromText("aaaaa-aa"));
-    can = fixture.actor;
-    canCanisterId = fixture.canisterId; 
+    const fixture_ledger = await TestLedger(pic, Principal.fromText("aaaaa-aa"));
+    can_ledger = fixture_ledger.actor;
+    canCanisterId_ledger = fixture_ledger.canisterId; 
     
-    await can.set_ledger_canister();
+    await can_ledger.set_ledger_canister();
 
   });
 
@@ -224,35 +233,33 @@ describe("reader", () => {
       },
     };
     
-    let r_mint = await can.add_record(my_mint_action);
-    let r_mint2 = await can.add_record(my_mint_action);
-    let r_mint3 = await can.add_record(my_mint_action);
+    let r_mint = await can_ledger.add_record(my_mint_action);
+    let r_mint2 = await can_ledger.add_record(my_mint_action);
+    let r_mint3 = await can_ledger.add_record(my_mint_action);
     
     let my_block_args: GetBlocksArgs = [
       {start:0n,length:3n}, 
     ]
 
-    let my_blocks:GetTransactionsResult = await can.icrc3_get_blocks(my_block_args);
+    let my_blocks:GetTransactionsResult = await can_ledger.icrc3_get_blocks(my_block_args);
 
     const decodedBlock0 = decodeBlock2(my_blocks,1); 
     const decodedBlock1 = decodeBlock2(my_blocks,1); 
     const decodedBlock2 = decodeBlock2(my_blocks,2); 
-    //console.log("decodedBlock0", decodedBlock0);
-    //console.log("decodedBlock1", decodedBlock1);
-    //console.log("decodedBlock2", decodedBlock2);
+
     const john0_to = john0.getPrincipal().toUint8Array();
 
     expect(true).toBe(JSON.stringify(john0_to) === JSON.stringify(decodedBlock1.payload_to));
 
     if (typeof decodedBlock1.auxm1 !== 'undefined') {
       const auxm1 = decodedBlock1.auxm1;
-      const phash_hat1 = await can.compute_hash(auxm1);
+      const phash_hat1 = await can_ledger.compute_hash(auxm1);
       expect(true).toBe(JSON.stringify(decodedBlock1.phash) === JSON.stringify(phash_hat1[0]));
     };
 
     if (typeof decodedBlock2.auxm1 !== 'undefined') {
       const auxm2 = decodedBlock2.auxm1;
-      const phash_hat2 = await can.compute_hash(auxm2);
+      const phash_hat2 = await can_ledger.compute_hash(auxm2);
       expect(true).toBe(JSON.stringify(decodedBlock2.phash) === JSON.stringify(phash_hat2[0]));
     };
    

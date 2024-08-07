@@ -11,7 +11,8 @@
     "test:delta": "NO_MOTOKO_OUTPUT=true jest -c ./jest.config.ts -t 'Delta'",
     "test:delta:out": "jest -c ./jest.config.ts -t 'Delta'",
     "test:cert": "jest -c ./jest.config.ts -t 'Cert'",
-    "test:phash": "jest -c ./jest.config.ts -t 'phash'"
+    "test:phash": "jest -c ./jest.config.ts -t 'phash'",
+    "test:reader": "jest -c ./jest.config.ts -t 'reader'"
   },
   "dependencies": {
     "@dfinity/agent": "^1.0.0",
