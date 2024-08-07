@@ -7,7 +7,7 @@ import Int "mo:base/Int";
 
 module {
 
-    public class ErrLog({
+    public class SysLog({
         _eventlog_mem : SWB.StableData<Text>;
     }) { 
 
