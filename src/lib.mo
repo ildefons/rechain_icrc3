@@ -20,7 +20,7 @@ import MTree "mo:ic-certification/MerkleTree";
 import Option "mo:base/Option";
 import Utils "./utils";
 import Nat8 "mo:base/Nat8";
-import SysLog "./SysLog";
+import SysLog "./syslog";
 
 module {
 
@@ -34,7 +34,7 @@ module {
     cert_store : CertTree.Store;
     
     eventlog_mem : SWB.StableData<Text>;
-    //syslog : SysLog.ErrLog;
+    //syslog : SysLog.SysLog;
     //syslog : SWB.StableData<Text>;
     //logMem : SWB.StableData<Text>;
   };
@@ -58,10 +58,10 @@ module {
       cert_store = CertTree.newStore(); //Certificate tree storage
 
       eventlog_mem = SWB.SlidingWindowBufferNewMem<Text>();//SWB.SlidingWindowBufferNewMem<Text>();
-      //syslog = SysLog.ErrLog(memEventLog());
-      //syslog = SysLog.ErrLog({_eventlog_mem=SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())});//memEventLog());
+      //syslog = SysLog.SysLog(memEventLog());
+      //syslog = SysLog.SysLog({_eventlog_mem=SWB.SlidingWindowBuffer<Text>(SWB.SlidingWindowBufferNewMem<Text>())});//memEventLog());
       
-      //syslog = SysLog.ErrLog(memEventLog());
+      //syslog = SysLog.SysLog(memEventLog());
       //syslog = SWB.SlidingWindowBufferNewMem<Text>();
     };
   };
@@ -386,7 +386,7 @@ module {
     };
 
     public func start_archiveCycleMaintenance<system>() : async () {
-      let syslog = SysLog.ErrLog({_eventlog_mem=mem.eventlog_mem});
+      let syslog = SysLog.SysLog({_eventlog_mem=mem.eventlog_mem});
       let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
      
       for (i in archives.keys()) {
@@ -420,7 +420,7 @@ module {
 
     public func check_archives_balance() : async () {
 
-      let syslog = SysLog.ErrLog({_eventlog_mem=mem.eventlog_mem});
+      let syslog = SysLog.SysLog({_eventlog_mem=mem.eventlog_mem});
       
       let archives = Iter.toArray(Map.entries<Principal, T.TransactionRange>(mem.archives));
       // Debug.print("Size in check: "#debug_show(archives.size()));
